@@ -210,7 +210,7 @@
       
       <div class="field">
   <label for="region">Region</label>
-  <select id="region">
+  <select id="region" name="region">   
     <option value="">Select region</option>
     <option value="West MTN">West MTN</option>
     <option value="Heber">Heber</option>
@@ -586,6 +586,7 @@
       const payload = {
         date: document.getElementById("workDate").value,
         location: document.getElementById("location").value.trim(),
+        region: document.getElementById("region").value, 
         techName: document.getElementById("techName").value.trim(),
         hoursWorked: document.getElementById("hoursWorked").value.trim(),
         notes: document.getElementById("generalNotes").value.trim(),
@@ -622,6 +623,7 @@
 </script>
 </body>
 </html>
+
 
 
 
