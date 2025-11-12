@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Daily Passdown</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 1rem;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 1rem 1.25rem 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 0.75rem;
+      text-align: center;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .section {
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 0.75rem;
+      background: #fafafa;
+    }
+
+    .section-header {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .field-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .field {
+      flex: 1 1 140px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select,
+    textarea {
+      padding: 0.45rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 0.55rem 0.75rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-small {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 0.45rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+
+    .parts-table-empty {
+      font-size: 0.85rem;
+      color: #6b7280;
+      padding: 0.25rem 0;
+    }
+
+    .footer-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .json-preview {
+      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.75rem;
+      background: #111827;
+      color: #d1d5db;
+      padding: 0.5rem;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0.75rem;
+      }
+
+      h1 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Daily Passdown</h1>
+
+  <form id="partsForm">
+    <!-- Work info -->
+    <div class="section">
+      <div class="section-header">Work Details</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="workDate">Date</label>
+          <input type="date" id="workDate" />
+        </div>
+        <div class="field">
+          <label for="techName">Technician(s)</label>
+          <input type="text" id="techName" placeholder="e.g. Chris Riddell, Tech 2" />
+        </div>
+        <div class="field" style="max-width:120px;">
+          <label for="hoursWorked">Hours worked</label>
+          <input type="number" id="hoursWorked" min="0" step="0.25" placeholder="e.g. 8" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="location">Location / Address / Region</label>
+        <input type="text" id="location" placeholder="e.g. 123 Main St, City – North" />
+      </div>
+
+      <div class="field">
+        <label for="generalNotes">Notes</label>
+        <textarea id="generalNotes" placeholder="Anything special about this job, span, or area..."></textarea>
+      </div>
+    </div>
+
+    <!-- Assembly selection -->
+    <div class="section">
+      <div class="section-header">Assemblies used today</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="assemblySelect">Assembly type</label>
+          <select id="assemblySelect">
+            <option value="">Select assembly</option>
+            <option value="terminalPole">Terminal pole Assembly</option>
+            <option value="downGuyAnchorPole">Down Guy Anchor Pole Assembly</option>
+            <option value="intermediatePole">Intermediate Poles Assembly</option>
+            <option value="lashingIntermediatePole">Lashing Intermediate pole Assembly</option>
+            <option value="poleRiser">Pole Riser Assembly</option>
+            <option value="snowshoeAssembly">Snowshoe Assembly</option>
+          </select>
+        </div>
+        <div class="field" style="max-width:120px;">
+          <label for="assemblyQty">Qty</label>
+          <input type="number" id="assemblyQty" min="1" value="1" />
+        </div>
+      </div>
+      <div class="button-row">
+        <button type="button" class="btn-secondary" id="addAssemblyBtn">Add assembly parts</button>
+        <button type="button" class="btn-danger btn-small" id="clearPartsBtn">Clear all parts</button>
+      </div>
+    </div>
+
+    <!-- Custom part add -->
+    <div class="section">
+      <div class="section-header">Add Custom Part</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="partSelect">Part</label>
+          <select id="partSelect">
+            <!-- Options filled by JS from catalog -->
+          </select>
+        </div>
+        <div class="field" style="max-width:120px;">
+          <label for="partQty">Qty</label>
+          <input type="number" id="partQty" min="1" value="1" />
+        </div>
+      </div>
+      <div class="button-row">
+        <button type="button" class="btn-secondary" id="addPartBtn">Add part</button>
+      </div>
+    </div>
+
+    <!-- Parts table -->
+    <div class="section">
+      <div class="section-header">Parts Used (Total for This Entry)</div>
+      <div id="partsTableContainer"></div>
+    </div>
+
+    <!-- Submit -->
+    <div class="section">
+      <div class="footer-row">
+        <button type="submit" class="btn-primary">Submit Daily Passdown</button>
+        <small>Submitting will send this entry to the Google Sheet.</small>
+      </div>
+      <div id="jsonPreview" class="json-preview"></div>
+    </div>
+  </form>
+</div>
+
+<script>
+  /****************************************************
+   * 1. Parts catalog
+   ****************************************************/
+  const partsCatalog = [
+    // Strand / hardware
+    { id: "STRAND_EHS_1_4", name: `Strand, (EHS) 1/4", 5000' Reel, Imported`, unit: "ft" },
+    { id: "CLAMP_B_SUS_5_8", name: `Clamp, B Suspension Cable, 5/8"`, unit: "each" },
+    { id: "LASH_WIRE_045T430", name: `Lashing Wire, .045T430, 1200' Coil`, unit: "each" },
+    { id: "CLAMP_D_LASH", name: `Clamp, D Cable Lashing, Bug Nut`, unit: "each" },
+
+    // Bolts
+    { id: "BOLT_5_8x12", name: `Bolt, Machine, 5/8" x 12"`, unit: "each" },
+    { id: "BOLT_5_8x14", name: `Bolt, Machine, 5/8" x 14"`, unit: "each" },
+    { id: "BOLT_5_8x16", name: `Bolt, Machine, 5/8" x 16"`, unit: "each" },
+    { id: "BOLT_5_8x18", name: `Bolt, Machine, 5/8" x 18"`, unit: "each" },
+    { id: "BOLT_TE_5_8x12", name: `Bolt, Thimble Eye, 5/8" x 12", Straight`, unit: "each" },
+    { id: "BOLT_TE_5_8x14", name: `Bolt, Thimble Eye, 5/8" x 14"`, unit: "each" },
+    { id: "BOLT_TE_5_8x16", name: `Bolt, Thimble Eye, 5/8" x 16"`, unit: "each" },
+    { id: "BOLT_TE_3_4x18", name: `Bolt, Thimble Eye, 3/4" x 18"`, unit: "each" },
+
+    // Nuts / washers / straps / spacers
+    { id: "NUT_THIMBLE_5_8", name: `Nut, Thimble Eye, Threaded, Single Strand, 5/8"`, unit: "each" },
+    { id: "NUT_SQUARE_5_8", name: `Nut, Square, 5/8"`, unit: "each" },
+    { id: "WASHER_SQUARE_2x2", name: `Washer, Square, 2" x 2"`, unit: "each" },
+    { id: "STRAP_LASH_16", name: `Strap, Cable Lashing Support, 16", Stainless`, unit: "each" },
+    { id: "SPACER_LASH_1_2", name: `Spacer, 1/2" Lashing strap spacer`, unit: "each" },
+    { id: "STRAP_LASH_10", name: `Strap, Cable Lashing Support, 10", Stainless`, unit: "each" },
+    { id: "SPACER_STACK_1_2", name: `1/2" Stackable Cable Spacer`, unit: "each" },
+
+    // Guy hardware
+    { id: "HOOK_B_GUY_5_8", name: `Hook, B Guy, 5/8" rams head`, unit: "each" },
+    { id: "ANCHOR_ROD_3_4x66", name: `Anchor rod and anchor, 0.75" x 66"`, unit: "each" },
+    { id: "GUY_INSULATOR", name: `Guy Insulator, 3 1/2" x 2 1/2"`, unit: "each" },
+    { id: "GUY_GUARD_96", name: `Guy Guard, 96", Yellow`, unit: "each" },
+    { id: "GRIP_DEADEND_1_4", name: `Grip, Deadend Guy, 1/4" Strand`, unit: "each" },
+
+    // Standoffs / risers / conduit
+    { id: "STANDOFF_12_STEEL", name: `Standoff, 12" Steel, Diamond Pole Mount Bracket`, unit: "each" },
+    { id: "STANDOFF_V_6", name: `6" V-Style Standoff`, unit: "each" },
+    { id: "RIGID_COND_2x10", name: `2 in. x 10 ft. Rigid Metal Conduit`, unit: "each" },
+    { id: "PVC_COND_2x10", name: `2 in x 10 ft Pvc conduit`, unit: "each" },
+    { id: "STRUT_CLAMP_2IN", name: `2 in Strut Pipe Clamp`, unit: "each" },
+
+    // Strand splice / snowshoes
+    { id: "STRAND_SPLICE_1_4", name: `Strand Splice 1/4" preformed splice`, unit: "each" },
+    { id: "SNOWSHOE_16", name: `Fiber Storage Unit, 16" Snowshoes`, unit: "each" },
+    { id: "RIGID_COUPLER_2IN", name: `Rigid Coupler 2"`, unit: "each" },
+    { id: "PVC_COUPLER_2IN", name: `PVC Coupler 2"`, unit: "each" },
+
+    // Fiber cables
+    { id: "FIBER_SM_288", name: `Fiber Cable, Singlemode, 288 ct`, unit: "ft" },
+    { id: "FIBER_SM_144", name: `Fiber Cable, Singlemode, 144 ct`, unit: "ft" },
+    { id: "FIBER_SM_72",  name: `Fiber Cable, Singlemode, 072 ct`, unit: "ft" },
+    { id: "FIBER_SM_12",  name: `Fiber Cable, Singlemode, 012 ct`, unit: "ft" },
+
+    // FOSC / closure stuff
+    { id: "A4_CASE", name: `A4 - Case - FOSC450-A4-2-24-1-A1V`, unit: "each" },
+    { id: "A6_CASE", name: `A6 - Case`, unit: "each" },
+    { id: "A8_CASE", name: `A8 - Case`, unit: "each" },
+    { id: "A_TRAY",  name: `A - Tray - FOSC-ACC-A-TRAY-24`, unit: "each" },
+    { id: "B6_CASE", name: `B6 - Case`, unit: "each" },
+    { id: "B8_CASE", name: `B8 - Case`, unit: "each" },
+    { id: "B_TRAY",  name: `B - Tray`, unit: "each" },
+    { id: "C4_CASE", name: `C4 - Case`, unit: "each" },
+    { id: "C6_CASE", name: `C6 - Case - FOSC450`, unit: "each" },
+    { id: "C8_CASE", name: `C8 - Case`, unit: "each" },
+    { id: "C12_CASE", name: `C12 - Case`, unit: "each" },
+    { id: "C_TRAY",  name: `C - Tray - CC-C-TRAY-FOSC-A24`, unit: "each" },
+    { id: "D6_CASE", name: `D6 - Case - FOSC450-D6-6-NT-0-D6V`, unit: "each" },
+    { id: "D_TRAY",  name: `D - Tray - FOSC-ACC-D-TRAY-72-KIT`, unit: "each" },
+    { id: "DROP_GEL_SEAL", name: `Drop Gel Seal Kit (Drop adapter`, unit: "each" },
+    { id: "PLC_1x2", name: `1X2 Bare PLC Splitter`, unit: "each" },
+    { id: "PLC_1x4", name: `1X4 Bare PLC Splitter`, unit: "each" },
+    { id: "PLC_1x8", name: `1X8 Bare PLC Splitter`, unit: "each" },
+
+    // Vaults / underground
+    { id: "VAULT_LARGE", name: `Vault - Large  - 17 x 30 x 18`, unit: "each" },
+    { id: "HANDHOLE_POLY", name: `Handhole Polymer - 13" x 24" x 12"`, unit: "each" },
+    { id: "HANDHOLE_PLASTIC", name: `Handhole - Plastic - 14"x19"`, unit: "each" },
+    { id: "CONDUIT_SDR11_1_1_4", name: `SDR11 1-1/4" HDPE Conduit`, unit: "ft" },
+    { id: "CONDUIT_SDR11_2", name: `SDR11 2" HDPE Conduit`, unit: "ft" },
+    { id: "TRACER_WIRE", name: `Tracer Wire`, unit: "ft" },
+    { id: "MULE_TAPE", name: `Mule Tape`, unit: "ft" },
+    { id: "COND_COUPLER_1_1_4", name: `Conduit Coupler 1 1/4"`, unit: "each" },
+    { id: "COND_COUPLER_2", name: `Conduit Coupler 2"`, unit: "each" },
+    { id: "COND_COUPLER_3_4", name: `Conduit Coupler 3/4"`, unit: "each" },
+
+    // MST / HST drops
+    { id: "MST_6P_100",  name: `MST - 6P 100ft`, unit: "each" },
+    { id: "MST_6P_300",  name: `MST - 6P 300ft`, unit: "each" },
+    { id: "MST_6P_500",  name: `MST - 6P 500ft`, unit: "each" },
+    { id: "MST_6P_700",  name: `MST - 6P 700ft`, unit: "each" },
+    { id: "MST_6P_1000", name: `MST - 6P 1000ft`, unit: "each" },
+    { id: "MST_2P_50",   name: `MST - 2P 50ft`, unit: "each" },
+    { id: "MST_2P_100",  name: `MST - 2P 100ft`, unit: "each" },
+    { id: "MST_2P_300",  name: `MST - 2P 300ft`, unit: "each" },
+    { id: "MST_2P_400",  name: `MST - 2P 400ft`, unit: "each" },
+    { id: "MST_2P_500",  name: `MST - 2P 500ft`, unit: "each" },
+    { id: "MST_2P_700",  name: `MST - 2P 700ft`, unit: "each" },
+    { id: "MST_2P_800",  name: `MST - 2P 800ft`, unit: "each" },
+    { id: "MST_2P_1000", name: `MST - 2P 1000ft`, unit: "each" },
+    { id: "HST_6P_100",  name: `HST - 6 Port 100ft`, unit: "each" },
+    { id: "HST_6P_700",  name: `HST - 6 Port 700ft`, unit: "each" },
+    { id: "HST_2P_50",   name: `HST - 2 Port 50ft`, unit: "each" },
+    { id: "HST_2P_100",  name: `HST - 2 Port 100ft`, unit: "each" },
+    { id: "HST_2P_300",  name: `HST - 2 Port 300ft`, unit: "each" },
+  ];
+
+  /****************************************************
+   * 2. Assembly templates
+   ****************************************************/
+  const assemblyTemplates = {
+    terminalPole: [
+      { partId: "BOLT_TE_5_8x14", qty: 1 },
+      { partId: "NUT_SQUARE_5_8", qty: 1 },
+      { partId: "WASHER_SQUARE_2x2", qty: 1 },
+      { partId: "GRIP_DEADEND_1_4", qty: 1 },
+    ],
+    downGuyAnchorPole: [
+      { partId: "STRAND_EHS_1_4",   qty: 20 },
+      { partId: "GRIP_DEADEND_1_4", qty: 4 },
+      { partId: "ANCHOR_ROD_3_4x66", qty: 1 },
+      { partId: "GUY_INSULATOR", qty: 1 },
+      { partId: "GUY_GUARD_96", qty: 1 },
+      { partId: "HOOK_B_GUY_5_8", qty: 1 },
+    ],
+    intermediatePole: [
+      { partId: "NUT_SQUARE_5_8", qty: 2 },
+      { partId: "WASHER_SQUARE_2x2", qty: 2 },
+      { partId: "BOLT_5_8x14", qty: 1 },
+      { partId: "CLAMP_B_SUS_5_8", qty: 1 },
+    ],
+    lashingIntermediatePole: [
+      { partId: "CLAMP_D_LASH", qty: 1 },
+      { partId: "SPACER_LASH_1_2", qty: 2 },
+      { partId: "STRAP_LASH_16", qty: 1 },
+    ],
+    poleRiser: [
+      { partId: "RIGID_COND_2x10", qty: 2 },
+      { partId: "STRUT_CLAMP_2IN", qty: 2 },
+      { partId: "STANDOFF_V_6", qty: 2 },
+    ],
+    snowshoeAssembly: [
+      { partId: "STRAP_LASH_16", qty: 5 },
+      { partId: "SNOWSHOE_16", qty: 1 },
+    ],
+  };
+
+  /****************************************************
+   * 3. State & helpers
+   ****************************************************/
+  const partsUsed = {};
+  const assembliesUsed = {};
+
+  function getPartById(id) {
+    return partsCatalog.find(p => p.id === id);
+  }
+
+  function addPartToUsage(partId, qty) {
+    const part = getPartById(partId);
+    if (!part) {
+      alert("Unknown part: " + partId);
+      return;
+    }
+    const quantity = Number(qty) || 0;
+    if (quantity <= 0) return;
+
+    if (!partsUsed[partId]) {
+      partsUsed[partId] = {
+        id: part.id,
+        name: part.name,
+        unit: part.unit,
+        qty: 0,
+      };
+    }
+    partsUsed[partId].qty += quantity;
+    renderPartsTable();
+  }
+
+  function removePart(partId) {
+    delete partsUsed[partId];
+    renderPartsTable();
+  }
+  window.removePart = removePart;
+
+  function clearAllParts() {
+    Object.keys(partsUsed).forEach(k => delete partsUsed[k]);
+    Object.keys(assembliesUsed).forEach(k => delete assembliesUsed[k]);
+    renderPartsTable();
+  }
+
+  function renderPartsTable() {
+    const container = document.getElementById("partsTableContainer");
+    const entries = Object.values(partsUsed);
+
+    if (entries.length === 0) {
+      container.innerHTML = '<div class="parts-table-empty">No parts added yet. Use assemblies or add custom parts.</div>';
+      return;
+    }
+
+    let html = '<table><thead><tr>' +
+      '<th>Part ID</th><th>Description</th><th>Qty</th><th>Unit</th><th>Actions</th>' +
+      '</tr></thead><tbody>';
+
+    entries.forEach(item => {
+      html += `<tr>
+        <td>${item.id}</td>
+        <td>${item.name}</td>
+        <td>${item.qty}</td>
+        <td>${item.unit}</td>
+        <td><button type="button" class="btn-small btn-danger" onclick="removePart('${item.id}')">Remove</button></td>
+      </tr>`;
+    });
+
+    html += "</tbody></table>";
+    container.innerHTML = html;
+  }
+
+  function initPartDropdown() {
+    const select = document.getElementById("partSelect");
+    select.innerHTML = "";
+    partsCatalog.forEach(part => {
+      const opt = document.createElement("option");
+      opt.value = part.id;
+      opt.textContent = `${part.name} (${part.id})`;
+      select.appendChild(opt);
+    });
+  }
+
+  function initDate() {
+    const dateInput = document.getElementById("workDate");
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  /****************************************************
+   * 4. Wire up events
+   ****************************************************/
+  document.addEventListener("DOMContentLoaded", () => {
+    initPartDropdown();
+    initDate();
+    renderPartsTable();
+
+    const addAssemblyBtn = document.getElementById("addAssemblyBtn");
+    const clearPartsBtn = document.getElementById("clearPartsBtn");
+    const addPartBtn = document.getElementById("addPartBtn");
+    const form = document.getElementById("partsForm");
+    const jsonPreview = document.getElementById("jsonPreview");
+
+    addAssemblyBtn.addEventListener("click", () => {
+      const assemblyId = document.getElementById("assemblySelect").value;
+      const qty = Number(document.getElementById("assemblyQty").value) || 0;
+
+      if (!assemblyId) {
+        alert("Select an assembly first.");
+        return;
+      }
+      if (qty <= 0) {
+        alert("Enter a quantity of at least 1.");
+        return;
+      }
+
+      const template = assemblyTemplates[assemblyId];
+      if (!template) {
+        alert("No template defined for " + assemblyId);
+        return;
+      }
+
+      template.forEach(item => addPartToUsage(item.partId, item.qty * qty));
+      assembliesUsed[assemblyId] = (assembliesUsed[assemblyId] || 0) + qty;
+    });
+
+    clearPartsBtn.addEventListener("click", () => {
+      if (confirm("Clear all parts from this form?")) {
+        clearAllParts();
+      }
+    });
+
+    addPartBtn.addEventListener("click", () => {
+      const partId = document.getElementById("partSelect").value;
+      const qty = document.getElementById("partQty").value;
+      addPartToUsage(partId, qty);
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const payload = {
+        date: document.getElementById("workDate").value,
+        location: document.getElementById("location").value.trim(),
+        techName: document.getElementById("techName").value.trim(),
+        hoursWorked: document.getElementById("hoursWorked").value.trim(),
+        notes: document.getElementById("generalNotes").value.trim(),
+        timestamp: new Date().toISOString(),
+        assemblies: Object.entries(assembliesUsed).map(([type, qty]) => ({ type, qty })),
+        parts: Object.values(partsUsed),
+      };
+
+      jsonPreview.textContent = JSON.stringify(payload, null, 2);
+
+      // 👇 PASTE YOUR NEW WEB APP URL HERE
+      const endpoint = "https://script.google.com/macros/s/AKfycbyEt9UFLn5TC4cDyECGdcgaYlloD0qAD3cnVcKabnyv0tbNVlCh1pEsi_80QLePCm9g/exec";
+
+      fetch(endpoint, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+      .then(() => {
+        alert("Daily Passdown submitted. Check the Google Sheet to confirm it was logged.");
+        clearAllParts();
+        form.reset();
+        initDate();
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error sending to Google Sheets: " + err.message);
+      });
+    });
+  });
+</script>
+</body>
+</html>
