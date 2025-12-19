@@ -816,14 +816,22 @@ function downloadCsv(filename, csvText) {
     
 
 loadDayBtn.addEventListener("click", () => {
-  const loaded = loadDayFromLocalStorage();
-  if (!loaded) {
-    alert("No saved day found on this device.");
+  const dateStr = getDateStr();
+  const segments = loadSegmentsForDate(dateStr);
+
+  if (!segments || segments.length === 0) {
+    alert(`No saved segments for ${dateStr}.`);
     return;
   }
-  const savedAt = localStorage.getItem("dailyPassdown.savedAt");
-  alert(`Loaded saved day.\nSaved at: ${savedAt}`);
+
+  const list = segments
+    .map((s, i) => `${i + 1}) ${new Date(s.savedAt).toLocaleTimeString()}`)
+    .join("\n");
+
+  alert(`Saved segments for ${dateStr}:\n\n${list}`);
 });
+
+
 
 
     addPartBtn.addEventListener("click", () => {
@@ -947,6 +955,7 @@ if (isIOS) {
 </script>
 </body>
 </html>
+
 
 
 
