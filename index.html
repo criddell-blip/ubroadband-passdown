@@ -273,11 +273,13 @@
   <button type="button" class="btn-secondary" id="saveSegmentBtn">Save Segment (Local)</button>
   <button type="button" class="btn-secondary" id="startNewListBtn">Start New List</button>
 
-  <button type="button" class="btn-secondary" id="loadDayBtn">Load Saved Day</button>
+  <button type="button" class="btn-secondary" id="loadDayBtn">Show Saved Segments</button>
+  <button type="button" class="btn-secondary" id="loadLatestSegmentBtn">Load Latest Segment</button>
+  
+  <button type="button" class="btn-secondary" id="exportDayTotalBtn">Export Day Total CSV</button>
   <button type="button" class="btn-secondary" id="exportCsvBtn">Export CSV (Current Only)</button>
 
-  <button type="button" class="btn-secondary" id="exportDayTotalBtn">Export Day Total CSV</button>
-  <button type="submit" class="btn-primary">Submit Daily Passdown</button>
+    <button type="submit" class="btn-primary">Submit Daily Passdown</button>
 </div>
 
   <small>Export CSV downloads locally. Submit sends to Google Sheet.</small>
@@ -776,10 +778,11 @@ function downloadCsv(filename, csvText) {
     const clearPartsBtn = document.getElementById("clearPartsBtn");
     const addPartBtn = document.getElementById("addPartBtn");
     const exportCsvBtn = document.getElementById("exportCsvBtn");
-    const saveDayBtn = document.getElementById("saveDayBtn");
     const saveSegmentBtn = document.getElementById("saveSegmentBtn");
     const startNewListBtn = document.getElementById("startNewListBtn");
     const exportDayTotalBtn = document.getElementById("exportDayTotalBtn");
+    const loadLatestSegmentBtn = document.getElementById("loadLatestSegmentBtn");
+
 
     const loadDayBtn = document.getElementById("loadDayBtn");
     const form = document.getElementById("partsForm");
@@ -809,11 +812,46 @@ function downloadCsv(filename, csvText) {
     });
 
     clearPartsBtn.addEventListener("click", () => {
-      if (confirm("Clear all parts from this form?")) {
-        clearAllParts();
-      }
+  if (confirm("Clear all parts from this form?")) {
+    clearAllParts();
+  }
+});
+
+if (loadLatestSegmentBtn) {
+  loadLatestSegmentBtn.addEventListener("click", () => {
+    const dateStr = getDateStr();
+    const segments = loadSegmentsForDate(dateStr);
+
+    if (!segments || segments.length === 0) {
+      alert(`No saved segments found for ${dateStr}.\nTip: confirm Work Date is correct.`);
+      return;
+    }
+
+    const latest = segments[segments.length - 1];
+
+    if (!confirm(
+      `Load latest saved segment?\n\n` +
+      `Date: ${dateStr}\n` +
+      `Saved at: ${new Date(latest.savedAt).toLocaleTimeString()}\n\n` +
+      `This will REPLACE the current on-screen tally.`
+    )) return;
+
+    clearAllParts();
+
+    (latest.partsUsed || []).forEach(p => {
+      partsUsed[p.id] = { id: p.id, name: p.name, unit: p.unit, qty: p.qty };
     });
-    
+
+    (latest.assembliesUsed || []).forEach(a => {
+      assembliesUsed[a.type] = a.qty;
+    });
+
+    if (latest.workDetails) setWorkDetails(latest.workDetails);
+
+    renderPartsTable();
+    alert(`Loaded latest segment for ${dateStr}.`);
+  });
+}
 
 loadDayBtn.addEventListener("click", () => {
   const dateStr = getDateStr();
@@ -834,7 +872,8 @@ loadDayBtn.addEventListener("click", () => {
 
 
 
-    addPartBtn.addEventListener("click", () => {
+
+   addPartBtn.addEventListener("click", () => {
       const partId = document.getElementById("partSelect").value;
       const qty = document.getElementById("partQty").value;
       addPartToUsage(partId, qty);
@@ -955,6 +994,7 @@ if (isIOS) {
 </script>
 </body>
 </html>
+
 
 
 
