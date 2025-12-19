@@ -275,7 +275,15 @@
 
   <button type="button" class="btn-secondary" id="loadDayBtn">Show Saved Segments</button>
   <button type="button" class="btn-secondary" id="loadLatestSegmentBtn">Load Latest Segment</button>
-  
+  <button type="button" class="btn-secondary" id="loadAllSegmentsBtn">
+  Load All Segments (Total)
+</button>
+  <button type="button" class="btn-primary" id="submitDayTotalBtn">
+  Submit Day Total
+</button>
+
+
+
   <button type="button" class="btn-secondary" id="exportDayTotalBtn">Export Day Total CSV</button>
   <button type="button" class="btn-secondary" id="exportCsvBtn">Export CSV (Current Only)</button>
 
@@ -489,6 +497,86 @@ function snapshotCurrentState() {
     partsUsed: Object.values(partsUsed),
     assembliesUsed: Object.entries(assembliesUsed).map(([type, qty]) => ({ type, qty })),
   };
+}
+  const loadAllSegmentsBtn = document.getElementById("loadAllSegmentsBtn");
+
+if (loadAllSegmentsBtn) {
+  loadAllSegmentsBtn.addEventListener("click", () => {
+    const dateStr = getDateStr();
+    const segments = loadSegmentsForDate(dateStr);
+
+    if (!segments || segments.length === 0) {
+      alert(`No saved segments found for ${dateStr}.`);
+      return;
+    }
+
+    if (!confirm(
+      `Load ALL saved segments as a combined total?\n\n` +
+      `This will REPLACE the current on-screen tally.`
+    )) return;
+
+    const totals = combineSegmentsToTotals(segments);
+
+    clearAllParts();
+
+    totals.parts.forEach(p => {
+      partsUsed[p.id] = { id: p.id, name: p.name, unit: p.unit, qty: p.qty };
+    });
+
+    totals.assemblies.forEach(a => {
+      assembliesUsed[a.type] = a.qty;
+    });
+
+    renderPartsTable();
+    alert(`Loaded combined totals for ${dateStr} (${segments.length} segment(s)).`);
+  });
+}
+const submitDayTotalBtn = document.getElementById("submitDayTotalBtn");
+
+if (submitDayTotalBtn) {
+  submitDayTotalBtn.addEventListener("click", () => {
+    const dateStr = getDateStr();
+    const segments = loadSegmentsForDate(dateStr);
+
+    const hasCurrent =
+      Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
+
+    if (segments.length === 0 && !hasCurrent) {
+      alert("Nothing to submit yet (no saved segments and current list is empty).");
+      return;
+    }
+
+    // include current unsaved as an additional segment
+    const allSegments = segments.slice();
+    if (hasCurrent) allSegments.push(snapshotCurrentState());
+
+    const totals = combineSegmentsToTotals(allSegments);
+    const wd = getWorkDetails();
+
+    const payload = {
+      type: "dayTotal",
+      date: dateStr,
+      workDetails: wd,
+      segmentCount: allSegments.length,
+      totals,          // combined totals (parts + assemblies)
+      segments: allSegments, // optional: keep if you want detail in Sheets
+      timestamp: new Date().toISOString(),
+    };
+
+    const endpoint = "YOUR_WEB_APP_URL_HERE";
+
+    fetch(endpoint, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    .then(() => alert("Day Total submitted. Check Google Sheet to confirm."))
+    .catch(err => {
+      console.error(err);
+      alert("Error submitting Day Total: " + (err?.message || err));
+    });
+  });
 }
 
 function saveCurrentAsSegment() {
@@ -994,6 +1082,7 @@ if (isIOS) {
 </script>
 </body>
 </html>
+
 
 
 
