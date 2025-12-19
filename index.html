@@ -195,7 +195,7 @@
         </div>
         <div class="field">
           <label for="techName">Technician(s)</label>
-          <input type="text" id="techName" placeholder="e.g. Tech 1, Tech 2" />
+          <input type="text" id="techName" placeholder="e.g. Chris Riddell, Tech 2" />
         </div>
         <div class="field" style="max-width:120px;">
           <label for="hoursWorked">Hours worked</label>
@@ -204,27 +204,13 @@
       </div>
 
       <div class="field">
-        <label for="location">Location / Address</label>
-        <input type="text" id="location" placeholder="e.g. 10400 s phase 1.6 west mtn" />
+        <label for="location">Location / Address / Region</label>
+        <input type="text" id="location" placeholder="e.g. 123 Main St, City – North" />
       </div>
-      
-      <div class="field">
-  <label for="region">Region</label>
-  <select id="region" name="region">   
-    <option value="">Select region</option>
-    <option value="West MTN">West MTN</option>
-    <option value="Heber">Heber</option>
-    <option value="Park City">Park City</option>
-    <option value="Ogden Valley">Ogden Valley</option>
-    <option value="Wasatch Front">Wasatch Front</option>
-    <!-- You can change these to whatever matches UBB regions -->
-  </select>
-</div>
-
 
       <div class="field">
         <label for="generalNotes">Notes</label>
-        <textarea id="generalNotes" placeholder="Description of what and where.."></textarea>
+        <textarea id="generalNotes" placeholder="Anything special about this job, span, or area..."></textarea>
       </div>
     </div>
 
@@ -282,16 +268,29 @@
     </div>
 
     <!-- Submit -->
-    <div class="section">
-      <div class="footer-row">
-        <button type="submit" class="btn-primary">Submit Daily Passdown</button>
-        <small>Submitting will send this entry to the Google Sheet.</small>
-      </div>
-      <div id="jsonPreview" class="json-preview"></div>
-    </div>
-  </form>
+    <div class="footer-row">
+  <div class="button-row">
+  <button type="button" class="btn-secondary" id="saveSegmentBtn">Save Segment (Local)</button>
+  <button type="button" class="btn-secondary" id="startNewListBtn">Start New List</button>
+
+  <button type="button" class="btn-secondary" id="loadDayBtn">Load Saved Day</button>
+  <button type="button" class="btn-secondary" id="exportCsvBtn">Export CSV (Current Only)</button>
+
+  <button type="button" class="btn-secondary" id="exportDayTotalBtn">Export Day Total CSV</button>
+  <button type="submit" class="btn-primary">Submit Daily Passdown</button>
 </div>
 
+  <small>Export CSV downloads locally. Submit sends to Google Sheet.</small>
+</div>
+
+<div id="jsonPreview" class="json-preview" style="margin-top:10px; display:none;"></div>
+
+<div id="debugPanel" class="json-preview" style="margin-top:10px;">
+Debug output will appear here…
+</div>
+
+
+</form>
 <script>
   /****************************************************
    * 1. Parts catalog
@@ -426,9 +425,9 @@
       { partId: "CLAMP_B_SUS_5_8", qty: 1 },
     ],
     lashingIntermediatePole: [
-      { partId: "CLAMP_D_LASH", qty: 2 },
-      { partId: "SPACER_LASH_1_2", qty: 4 },
-      { partId: "STRAP_LASH_16", qty: 4 },
+      { partId: "CLAMP_D_LASH", qty: 1 },
+      { partId: "SPACER_LASH_1_2", qty: 2 },
+      { partId: "STRAP_LASH_16", qty: 1 },
     ],
     poleRiser: [
       { partId: "RIGID_COND_2x10", qty: 2 },
@@ -446,6 +445,189 @@
    ****************************************************/
   const partsUsed = {};
   const assembliesUsed = {};
+// ---- Local Save/Load (Top Level) ----
+const STORAGE_KEY = "dailyPassdown.savedDay";
+const STORAGE_META_KEY = "dailyPassdown.savedAt";
+
+function debugLog(...args) {
+  const el = document.getElementById("debugPanel");
+  const msg = args.map(a => (a instanceof Error ? `ERROR: ${a.message}` :
+    typeof a === "object" ? JSON.stringify(a, null, 2) : String(a)
+  )).join(" ");
+
+  console.log("[DEBUG]", ...args);
+  if (el) { 
+    el.textContent += `\n[${new Date().toISOString()}] ${msg}`;
+    el.scrollTop = el.scrollHeight;
+  }
+}
+// ---- Multi-segment per-day storage ----
+function getDateStr() {
+  return document.getElementById("workDate").value || "no-date";
+}
+
+function dayLogsKey(dateStr) {
+  return `dailyPassdown.logs.${dateStr}`;
+}
+
+function loadSegmentsForDate(dateStr) {
+  const key = dayLogsKey(dateStr);
+  return JSON.parse(localStorage.getItem(key) || "[]");
+}
+
+function saveSegmentsForDate(dateStr, segments) {
+  const key = dayLogsKey(dateStr);
+  localStorage.setItem(key, JSON.stringify(segments));
+}
+
+function snapshotCurrentState() {
+  return {
+    savedAt: new Date().toISOString(),
+    workDetails: getWorkDetails(),
+    partsUsed: Object.values(partsUsed),
+    assembliesUsed: Object.entries(assembliesUsed).map(([type, qty]) => ({ type, qty })),
+  };
+}
+
+function saveCurrentAsSegment() {
+  const dateStr = getDateStr();
+  const segments = loadSegmentsForDate(dateStr);
+  const seg = snapshotCurrentState();
+  segments.push(seg);
+  saveSegmentsForDate(dateStr, segments);
+  return { dateStr, seg, count: segments.length };
+}
+
+function combineSegmentsToTotals(segments) {
+  const partMap = {};     // id -> {id,name,unit,qty}
+  const assemblyMap = {}; // type -> qty
+
+  for (const seg of segments) {
+    (seg.partsUsed || []).forEach(p => {
+      if (!partMap[p.id]) {
+        partMap[p.id] = { id: p.id, name: p.name, unit: p.unit, qty: 0 };
+      }
+      partMap[p.id].qty += Number(p.qty) || 0;
+    });
+
+    (seg.assembliesUsed || []).forEach(a => {
+      assemblyMap[a.type] = (assemblyMap[a.type] || 0) + (Number(a.qty) || 0);
+    });
+  }
+
+  return {
+    parts: Object.values(partMap).sort((a, b) => a.id.localeCompare(b.id)),
+    assemblies: Object.entries(assemblyMap).map(([type, qty]) => ({ type, qty })),
+  };
+}
+
+function buildDayTotalCsvIncludingCurrent() {
+  const dateStr = getDateStr();
+  const segments = loadSegmentsForDate(dateStr);
+
+  // Include current unsaved tally automatically (your requirement)
+  const hasCurrent =
+    Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
+
+  if (hasCurrent) segments.push(snapshotCurrentState());
+
+  const totals = combineSegmentsToTotals(segments);
+  const wd = getWorkDetails();
+
+  const lines = [];
+  lines.push(["Date", "Technicians", "Hours Worked", "Location", "Segment Count (incl current)"].map(escapeCsv).join(","));
+  lines.push([dateStr, wd.techName, wd.hoursWorked, wd.location, String(segments.length)].map(escapeCsv).join(","));
+  lines.push("");
+
+  lines.push(["Part ID", "Description", "Qty", "Unit"].map(escapeCsv).join(","));
+  totals.parts.forEach(p => {
+    lines.push([p.id, p.name, p.qty, p.unit].map(escapeCsv).join(","));
+  });
+
+  lines.push("");
+  lines.push(["Assemblies", "Qty"].map(escapeCsv).join(","));
+  totals.assemblies.forEach(a => {
+    lines.push([a.type, a.qty].map(escapeCsv).join(","));
+  });
+
+  return lines.join("\n");
+}
+
+function startNewListOnly() {
+  // Clears current in-memory tally only; saved segments remain
+  clearAllParts();
+  // Optional: keep Work Details but clear Notes
+  document.getElementById("generalNotes").value = "";
+}
+
+
+function storageDiagnostics() {
+  debugLog("=== Storage Diagnostics ===");
+  debugLog("href:", window.location.href);
+  debugLog("protocol:", window.location.protocol);
+  debugLog("origin:", window.location.origin || "(none)");
+  try {
+    localStorage.setItem("dailyPassdown.test", "ok");
+    const v = localStorage.getItem("dailyPassdown.test");
+    localStorage.removeItem("dailyPassdown.test");
+    debugLog("localStorage write/read:", v === "ok" ? "OK" : `FAILED (got ${v})`);
+  } catch (e) {
+    debugLog("localStorage exception:", e);
+  }
+  debugLog("savedDay exists:", !!localStorage.getItem(STORAGE_KEY));
+  debugLog("savedAt:", localStorage.getItem(STORAGE_META_KEY) || "(none)");
+}
+
+function getWorkDetails() {
+  return {
+    date: document.getElementById("workDate").value,
+    techName: document.getElementById("techName").value.trim(),
+    hoursWorked: document.getElementById("hoursWorked").value,
+    location: document.getElementById("location").value.trim(),
+    notes: document.getElementById("generalNotes").value.trim(),
+  };
+}
+
+function setWorkDetails(details) {
+  document.getElementById("workDate").value = details.date || "";
+  document.getElementById("techName").value = details.techName || "";
+  document.getElementById("hoursWorked").value = details.hoursWorked || "";
+  document.getElementById("location").value = details.location || "";
+  document.getElementById("generalNotes").value = details.notes || "";
+}
+
+function saveDayToLocalStorage() {
+  const payload = {
+    workDetails: getWorkDetails(),
+    partsUsed: Object.values(partsUsed),
+    assembliesUsed: Object.entries(assembliesUsed).map(([type, qty]) => ({ type, qty })),
+  };
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  localStorage.setItem(STORAGE_META_KEY, new Date().toISOString());
+}
+
+function loadDayFromLocalStorage() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+
+  const parsed = JSON.parse(raw);
+
+  clearAllParts();
+
+  (parsed.partsUsed || []).forEach(p => {
+    partsUsed[p.id] = { id: p.id, name: p.name, unit: p.unit, qty: p.qty };
+  });
+
+  (parsed.assembliesUsed || []).forEach(a => {
+    assembliesUsed[a.type] = a.qty;
+  });
+
+  setWorkDetails(parsed.workDetails || {});
+  renderPartsTable();
+
+  return parsed;
+}
 
   function getPartById(id) {
     return partsCatalog.find(p => p.id === id);
@@ -470,7 +652,9 @@
     }
     partsUsed[partId].qty += quantity;
     renderPartsTable();
-  }
+    }
+
+  
 
   function removePart(partId) {
     delete partsUsed[partId];
@@ -534,6 +718,55 @@
   /****************************************************
    * 4. Wire up events
    ****************************************************/
+  function escapeCsv(value) {
+  const s = String(value ?? "");
+  // Wrap in quotes if needed and escape quotes
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function buildCsvFromCurrentTally() {
+  const date = document.getElementById("workDate").value;
+  const location = document.getElementById("location").value.trim();
+  const techName = document.getElementById("techName").value.trim();
+  const hoursWorked = document.getElementById("hoursWorked").value.trim();
+  const notes = document.getElementById("generalNotes").value.trim();
+  const timestamp = new Date().toISOString();
+
+  const parts = Object.values(partsUsed);
+
+  // Header section (metadata)
+  const lines = [];
+  lines.push(["Date", "Timestamp", "Technicians", "Hours Worked", "Location", "Notes"].map(escapeCsv).join(","));
+  lines.push([date, timestamp, techName, hoursWorked, location, notes].map(escapeCsv).join(","));
+  lines.push(""); // blank line
+
+  // Line items section
+  lines.push(["Part ID", "Description", "Qty", "Unit"].map(escapeCsv).join(","));
+  parts
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .forEach(p => {
+      lines.push([p.id, p.name, p.qty, p.unit].map(escapeCsv).join(","));
+    });
+
+  return lines.join("\n");
+}
+
+function downloadCsv(filename, csvText) {
+  const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+  
   document.addEventListener("DOMContentLoaded", () => {
     initPartDropdown();
     initDate();
@@ -542,6 +775,13 @@
     const addAssemblyBtn = document.getElementById("addAssemblyBtn");
     const clearPartsBtn = document.getElementById("clearPartsBtn");
     const addPartBtn = document.getElementById("addPartBtn");
+    const exportCsvBtn = document.getElementById("exportCsvBtn");
+    const saveDayBtn = document.getElementById("saveDayBtn");
+    const saveSegmentBtn = document.getElementById("saveSegmentBtn");
+    const startNewListBtn = document.getElementById("startNewListBtn");
+    const exportDayTotalBtn = document.getElementById("exportDayTotalBtn");
+
+    const loadDayBtn = document.getElementById("loadDayBtn");
     const form = document.getElementById("partsForm");
     const jsonPreview = document.getElementById("jsonPreview");
 
@@ -573,6 +813,18 @@
         clearAllParts();
       }
     });
+    
+
+loadDayBtn.addEventListener("click", () => {
+  const loaded = loadDayFromLocalStorage();
+  if (!loaded) {
+    alert("No saved day found on this device.");
+    return;
+  }
+  const savedAt = localStorage.getItem("dailyPassdown.savedAt");
+  alert(`Loaded saved day.\nSaved at: ${savedAt}`);
+});
+
 
     addPartBtn.addEventListener("click", () => {
       const partId = document.getElementById("partSelect").value;
@@ -580,13 +832,84 @@
       addPartToUsage(partId, qty);
     });
 
+    saveSegmentBtn.addEventListener("click", () => {
+  try {
+    const result = saveCurrentAsSegment();
+    alert(`Saved segment for ${result.dateStr}.\nSegments saved today: ${result.count}`);
+  } catch (e) {
+    console.error(e);
+    alert("Save segment failed: " + (e?.message || e));
+  }
+});
+
+startNewListBtn.addEventListener("click", () => {
+  const segments = loadSegmentsForDate(getDateStr());
+  if (!confirm(`Start a new list?\nThis clears the CURRENT tally only.\nSaved segments today: ${segments.length}`)) return;
+  startNewListOnly();
+});
+
+exportDayTotalBtn.addEventListener("click", () => {
+  const dateStr = getDateStr();
+  const savedSegments = loadSegmentsForDate(dateStr);
+
+  const hasCurrent =
+    Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
+
+  if (savedSegments.length === 0 && !hasCurrent) {
+    alert("Nothing to export yet (no saved segments and current list is empty).");
+    return;
+  }
+
+  const tech = (document.getElementById("techName").value || "no-tech")
+    .trim()
+    .replace(/\s+/g, "_");
+
+  const filename = `day-total_${dateStr}_${tech}.csv`.replace(/[^\w\-\.]/g, "_");
+  const csv = buildDayTotalCsvIncludingCurrent();
+  downloadCsv(filename, csv);
+});
+
+
+exportCsvBtn.addEventListener("click", () => {
+  const partsCount = Object.keys(partsUsed).length;
+  if (partsCount === 0) {
+    alert("No parts to export yet. Add assemblies or parts first.");
+    return;
+  }
+
+  const date = document.getElementById("workDate").value || "no-date";
+  const tech = (document.getElementById("techName").value || "no-tech")
+    .trim()
+    .replace(/\s+/g, "_");
+
+  const filename = `daily-passdown_${date}_${tech}.csv`.replace(/[^\w\-\.]/g, "_");
+  const csv = buildCsvFromCurrentTally();
+  downloadCsv(filename, csv);
+  
+ const isIOS =
+  /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+if (isIOS) {
+  setTimeout(() => {
+    alert(
+      "CSV exported.\n\n" +
+      "Tap the Share icon, then choose 'Save to Files' to keep a copy."
+    );
+  }, 100);
+}
+
+
+});
+
+
+
     form.addEventListener("submit", (e) => {
       e.preventDefault();
 
       const payload = {
         date: document.getElementById("workDate").value,
         location: document.getElementById("location").value.trim(),
-        region: document.getElementById("region").value, 
         techName: document.getElementById("techName").value.trim(),
         hoursWorked: document.getElementById("hoursWorked").value.trim(),
         notes: document.getElementById("generalNotes").value.trim(),
@@ -595,7 +918,8 @@
         parts: Object.values(partsUsed),
       };
 
-      jsonPreview.textContent = JSON.stringify(payload, null, 2);
+      if (jsonPreview) jsonPreview.textContent = JSON.stringify(payload, null, 2);
+
 
       // 👇 PASTE YOUR NEW WEB APP URL HERE
       const endpoint = "https://script.google.com/macros/s/AKfycbyEt9UFLn5TC4cDyECGdcgaYlloD0qAD3cnVcKabnyv0tbNVlCh1pEsi_80QLePCm9g/exec";
@@ -623,6 +947,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
