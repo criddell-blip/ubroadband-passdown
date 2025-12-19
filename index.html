@@ -286,9 +286,10 @@
   <button type="button" class="btn-secondary" id="exportCsvBtn">Export CSV (Current Only)</button>
   <button type="button" class="btn-secondary" id="exportDayTotalBtn">Export Day Total CSV</button>
   <button type="submit" class="btn-primary">Submit Daily Passdown</button>
-   <button type="button" class="btn-primary" id="submitDayTotalBtn">
-  Submit Day Total
+  <button type="button" class="btn-primary" id="submitDayTotalBtn">
+  Submit Day Total (All Segments)
 </button>
+
     
 </div>
 
@@ -300,6 +301,7 @@
 <div id="debugPanel" class="json-preview" style="margin-top:10px;">
 Debug output will appear here…
 </div>
+meta: { type: "dayTotal", segmentCount: allSegments.length }
 
 
 </form>
@@ -538,31 +540,39 @@ const submitDayTotalBtn = document.getElementById("submitDayTotalBtn");
 if (submitDayTotalBtn) {
   submitDayTotalBtn.addEventListener("click", () => {
     const dateStr = getDateStr();
-    const segments = loadSegmentsForDate(dateStr);
+    const savedSegments = loadSegmentsForDate(dateStr);
 
     const hasCurrent =
       Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
 
-    if (segments.length === 0 && !hasCurrent) {
+    if (savedSegments.length === 0 && !hasCurrent) {
       alert("Nothing to submit yet (no saved segments and current list is empty).");
       return;
     }
 
-    // include current unsaved as an additional segment
-    const allSegments = segments.slice();
+    // Build segments list including current unsaved
+    const allSegments = savedSegments.slice();
     if (hasCurrent) allSegments.push(snapshotCurrentState());
 
+    // Build totals
     const totals = combineSegmentsToTotals(allSegments);
     const wd = getWorkDetails();
 
+    // Pack into payload matching your sheet columns
     const payload = {
-      type: "dayTotal",
       date: dateStr,
-      workDetails: wd,
-      segmentCount: allSegments.length,
-      totals,          // combined totals (parts + assemblies)
-      segments: allSegments, // optional: keep if you want detail in Sheets
-      timestamp: new Date().toISOString(),
+      location: wd.location || "",
+      region: "",                 // you can add a region input later if you want
+      techName: wd.techName || "",
+      notes: (wd.notes || "") + `\n[DayTotal] Segments: ${allSegments.length}`,
+      hoursWorked: wd.hoursWorked || "",
+      assemblies: totals.assemblies,  // array
+      parts: totals.parts,            // array
+      meta: {
+        type: "dayTotal",
+        segmentCount: allSegments.length,
+        generatedAt: new Date().toISOString(),
+      }
     };
 
     const endpoint = "YOUR_WEB_APP_URL_HERE";
@@ -573,13 +583,14 @@ if (submitDayTotalBtn) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     })
-    .then(() => alert("Day Total submitted. Check Google Sheet to confirm."))
-    .catch(err => {
-      console.error(err);
-      alert("Error submitting Day Total: " + (err?.message || err));
-    });
+      .then(() => alert("Day Total submitted. Check the Google Sheet to confirm."))
+      .catch(err => {
+        console.error(err);
+        alert("Error submitting Day Total: " + (err?.message || err));
+      });
   });
 }
+
 
 function saveCurrentAsSegment() {
   const dateStr = getDateStr();
@@ -872,6 +883,7 @@ function downloadCsv(filename, csvText) {
     const startNewListBtn = document.getElementById("startNewListBtn");
     const exportDayTotalBtn = document.getElementById("exportDayTotalBtn");
     const loadLatestSegmentBtn = document.getElementById("loadLatestSegmentBtn");
+    const submitDayTotalBtn = document.getElementById("submitDayTotalBtn");
 
 
     const loadDayBtn = document.getElementById("loadDayBtn");
@@ -1039,6 +1051,11 @@ if (isIOS) {
 
 });
 
+ if (submitDayTotalBtn) {
+  submitDayTotalBtn.addEventListener("click", () => {
+    alert("Submit Day Total clicked (wiring test)");
+  });
+}
 
 
     form.addEventListener("submit", (e) => {
@@ -1084,6 +1101,7 @@ if (isIOS) {
 </script>
 </body>
 </html>
+
 
 
 
