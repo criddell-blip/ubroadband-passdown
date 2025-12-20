@@ -1053,8 +1053,66 @@ if (isIOS) {
 
  if (submitDayTotalBtn) {
   submitDayTotalBtn.addEventListener("click", () => {
-    alert("Submit Day Total clicked (wiring test)");
+   const dateStr = getDateStr();
+const savedSegments = loadSegmentsForDate(dateStr);
+
+const hasCurrent =
+  Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
+
+if (savedSegments.length === 0 && !hasCurrent) {
+  alert("Nothing to submit yet (no saved segments and current list is empty).");
+  return;
+}
+
+if (!confirm(
+  `Submit DAY TOTAL for ${dateStr}?\n\n` +
+  `Saved segments: ${savedSegments.length}\n` +
+  `Include current unsaved tally: ${hasCurrent ? "YES" : "NO"}`
+)) return;
+
+// Build an array of segments including current unsaved (optional)
+const allSegments = savedSegments.slice();
+if (hasCurrent) allSegments.push(snapshotCurrentState());
+
+// Combine into totals (you already have this helper)
+const totals = combineSegmentsToTotals(allSegments);
+
+// Build payload expected by your Apps Script
+const wd = getWorkDetails();
+
+const payload = {
+  date: dateStr,
+  location: wd.location || "",
+  region: wd.region || "", // (you don't have region input yet; will be blank)
+  techName: wd.techName || "",
+  notes: (wd.notes || "") + `\n[DayTotal] SegmentCount=${allSegments.length}`,
+  hoursWorked: wd.hoursWorked || "",
+  assemblies: totals.assemblies,
+  parts: totals.parts,
+  meta: {
+    type: "dayTotal",
+    segmentCount: allSegments.length
+  },
+  segments: allSegments // optional: lets Apps Script write Segments Log
+};
+
+const endpoint = "https://script.google.com/macros/s/AKfycbyEt9UFLn5TC4cDyECGdcgaYlloD0qAD3cnVcKabnyv0tbNVlCh1pEsi_80QLePCm9g/exec";
+
+fetch(endpoint, {
+  method: "POST",
+  mode: "no-cors",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload),
+})
+  .then(() => {
+    alert("Day Total submitted. Check Google Sheet to confirm.");
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Day Total submit failed: " + (err?.message || err));
   });
+ 
+
 }
 
 
@@ -1101,6 +1159,7 @@ if (isIOS) {
 </script>
 </body>
 </html>
+
 
 
 
