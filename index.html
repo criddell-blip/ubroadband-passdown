@@ -204,13 +204,46 @@
       </div>
 
       <div class="field">
-        <label for="location">Location / Address / Region</label>
-        <input type="text" id="location" placeholder="e.g. 123 Main St, City – North" />
+        <label for="region">Region</label>
+        <select id="region">
+          <option value="">Select region</option>
+          <option value="West Mountain">West Mountain</option>
+          <option value="Ogden Valley">Ogden Valley</option>
+          <option value="Heber">Heber</option>
+          <option value="Park City">Park City</option>
+          <option value="Wasatch Front">Wasatch Front</option>
+          <option value="Other">Other (add in notes)</option>
+        </select>
       </div>
 
       <div class="field">
         <label for="generalNotes">Notes</label>
         <textarea id="generalNotes" placeholder="Anything special about this job, span, or area..."></textarea>
+      </div>
+    </div>
+
+    <!-- Segment save/load -->
+    <div class="section">
+      <div class="section-header">Saved Segments</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="segmentName">Segment name</label>
+          <input type="text" id="segmentName" placeholder="e.g. Terminal Pole - Heber Standard" />
+        </div>
+
+        <div class="field">
+          <label for="savedSegmentSelect">Load saved segment</label>
+          <select id="savedSegmentSelect">
+            <option value="">Select saved segment</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button type="button" class="btn-secondary" id="saveSegmentBtn">Save segment</button>
+        <button type="button" class="btn-secondary" id="loadSegmentBtn">Load segment</button>
+        <button type="button" class="btn-danger btn-small" id="deleteSegmentBtn">Delete segment</button>
       </div>
     </div>
 
@@ -222,10 +255,10 @@
           <label for="assemblySelect">Assembly type</label>
           <select id="assemblySelect">
             <option value="">Select assembly</option>
-            <option value="terminalPole">Terminal pole Assembly</option>
+            <option value="terminalPole">Terminal Pole Assembly</option>
             <option value="downGuyAnchorPole">Down Guy Anchor Pole Assembly</option>
-            <option value="intermediatePole">Intermediate Poles Assembly</option>
-            <option value="lashingIntermediatePole">Lashing Intermediate pole Assembly</option>
+            <option value="intermediatePole">Intermediate Pole Assembly</option>
+            <option value="lashingIntermediatePole">Lashing Intermediate Pole Assembly</option>
             <option value="poleRiser">Pole Riser Assembly</option>
             <option value="snowshoeAssembly">Snowshoe Assembly</option>
           </select>
@@ -246,10 +279,14 @@
       <div class="section-header">Add Custom Part</div>
       <div class="field-row">
         <div class="field">
-          <label for="partSelect">Part</label>
-          <select id="partSelect">
-            <!-- Options filled by JS from catalog -->
+          <label for="partCategory">Part Category</label>
+          <select id="partCategory">
+            <option value="All">All</option>
           </select>
+        </div>
+        <div class="field">
+          <label for="partSelect">Part</label>
+          <select id="partSelect"></select>
         </div>
         <div class="field" style="max-width:120px;">
           <label for="partQty">Qty</label>
@@ -268,150 +305,122 @@
     </div>
 
     <!-- Submit -->
-    <div class="footer-row">
-  <div class="button-row">
-  <button type="button" class="btn-secondary" id="saveSegmentBtn">Save Segment (Local)</button>
-  <button type="button" class="btn-secondary" id="startNewListBtn">Start New List</button>
-
-  <button type="button" class="btn-secondary" id="loadDayBtn">Show Saved Segments</button>
-  <button type="button" class="btn-secondary" id="loadLatestSegmentBtn">Load Latest Segment</button>
-  <button type="button" class="btn-secondary" id="loadAllSegmentsBtn">
-  Load All Segments (Total)
-</button>
- 
-
-
-
-  
-  <button type="button" class="btn-secondary" id="exportCsvBtn">Export CSV (Current Only)</button>
-  <button type="button" class="btn-secondary" id="exportDayTotalBtn">Export Day Total CSV</button>
-  <button type="submit" class="btn-primary">Submit Daily Passdown</button>
-  <button type="button" class="btn-primary" id="submitDayTotalBtn">
-  Submit Day Total (All Segments)
-</button>
-
-    
+    <div class="section">
+      <div class="footer-row">
+        <button type="submit" class="btn-primary">Submit Daily Passdown</button>
+        <small>Submitting will send this entry to the Google Sheet.</small>
+      </div>
+      <div id="jsonPreview" class="json-preview"></div>
+    </div>
+  </form>
 </div>
 
-  <small>Export CSV downloads locally. Submit sends to Google Sheet.</small>
-</div>
-
-<div id="jsonPreview" class="json-preview" style="margin-top:10px; display:none;"></div>
-
-<div id="debugPanel" class="json-preview" style="margin-top:10px;">
-Debug output will appear here…
-</div>
-
-
-
-</form>
 <script>
   /****************************************************
    * 1. Parts catalog
    ****************************************************/
   const partsCatalog = [
-    // Strand / hardware
-    { id: "STRAND_EHS_1_4", name: `Strand, (EHS) 1/4", 5000' Reel, Imported`, unit: "ft" },
-    { id: "CLAMP_B_SUS_5_8", name: `Clamp, B Suspension Cable, 5/8"`, unit: "each" },
-    { id: "LASH_WIRE_045T430", name: `Lashing Wire, .045T430, 1200' Coil`, unit: "each" },
-    { id: "CLAMP_D_LASH", name: `Clamp, D Cable Lashing, Bug Nut`, unit: "each" },
+    // Strand / Lashing
+    { id: "STRAND_EHS_1_4", name: `Strand, (EHS) 1/4", 5000' Reel, Imported`, unit: "ft", category: "Strand / Lashing" },
+    { id: "CLAMP_B_SUS_5_8", name: `Clamp, B Suspension Cable, 5/8"`, unit: "each", category: "Strand / Lashing" },
+    { id: "LASH_WIRE_045T430", name: `Lashing Wire, .045T430, 1200' Coil`, unit: "each", category: "Strand / Lashing" },
+    { id: "CLAMP_D_LASH", name: `Clamp, D Cable Lashing, Bug Nut`, unit: "each", category: "Strand / Lashing" },
+    { id: "STRAP_LASH_16", name: `Strap, Cable Lashing Support, 16", Stainless`, unit: "each", category: "Strand / Lashing" },
+    { id: "SPACER_LASH_1_2", name: `Spacer, 1/2" Lashing strap spacer`, unit: "each", category: "Strand / Lashing" },
+    { id: "STRAP_LASH_10", name: `Strap, Cable Lashing Support, 10", Stainless`, unit: "each", category: "Strand / Lashing" },
+    { id: "SPACER_STACK_1_2", name: `1/2" Stackable Cable Spacer`, unit: "each", category: "Strand / Lashing" },
+    { id: "STRAND_SPLICE_1_4", name: `Strand Splice 1/4" preformed splice`, unit: "each", category: "Strand / Lashing" },
+    { id: "SNOWSHOE_16", name: `Fiber Storage Unit, 16" Snowshoes`, unit: "each", category: "Strand / Lashing" },
 
-    // Bolts
-    { id: "BOLT_5_8x12", name: `Bolt, Machine, 5/8" x 12"`, unit: "each" },
-    { id: "BOLT_5_8x14", name: `Bolt, Machine, 5/8" x 14"`, unit: "each" },
-    { id: "BOLT_5_8x16", name: `Bolt, Machine, 5/8" x 16"`, unit: "each" },
-    { id: "BOLT_5_8x18", name: `Bolt, Machine, 5/8" x 18"`, unit: "each" },
-    { id: "BOLT_TE_5_8x12", name: `Bolt, Thimble Eye, 5/8" x 12", Straight`, unit: "each" },
-    { id: "BOLT_TE_5_8x14", name: `Bolt, Thimble Eye, 5/8" x 14"`, unit: "each" },
-    { id: "BOLT_TE_5_8x16", name: `Bolt, Thimble Eye, 5/8" x 16"`, unit: "each" },
-    { id: "BOLT_TE_3_4x18", name: `Bolt, Thimble Eye, 3/4" x 18"`, unit: "each" },
+    // Bolts / Nuts / Washers
+    { id: "BOLT_5_8x12", name: `Bolt, Machine, 5/8" x 12"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "BOLT_5_8x14", name: `Bolt, Machine, 5/8" x 14"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "BOLT_5_8x16", name: `Bolt, Machine, 5/8" x 16"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "BOLT_5_8x18", name: `Bolt, Machine, 5/8" x 18"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "BOLT_TE_5_8x12", name: `Bolt, Thimble Eye, 5/8" x 12", Straight`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "BOLT_TE_5_8x14", name: `Bolt, Thimble Eye, 5/8" x 14"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "BOLT_TE_5_8x16", name: `Bolt, Thimble Eye, 5/8" x 16"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "BOLT_TE_3_4x18", name: `Bolt, Thimble Eye, 3/4" x 18"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "NUT_THIMBLE_5_8", name: `Nut, Thimble Eye, Threaded, Single Strand, 5/8"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "NUT_SQUARE_5_8", name: `Nut, Square, 5/8"`, unit: "each", category: "Bolts / Nuts / Washers" },
+    { id: "WASHER_SQUARE_2x2", name: `Washer, Square, 2" x 2"`, unit: "each", category: "Bolts / Nuts / Washers" },
 
-    // Nuts / washers / straps / spacers
-    { id: "NUT_THIMBLE_5_8", name: `Nut, Thimble Eye, Threaded, Single Strand, 5/8"`, unit: "each" },
-    { id: "NUT_SQUARE_5_8", name: `Nut, Square, 5/8"`, unit: "each" },
-    { id: "WASHER_SQUARE_2x2", name: `Washer, Square, 2" x 2"`, unit: "each" },
-    { id: "STRAP_LASH_16", name: `Strap, Cable Lashing Support, 16", Stainless`, unit: "each" },
-    { id: "SPACER_LASH_1_2", name: `Spacer, 1/2" Lashing strap spacer`, unit: "each" },
-    { id: "STRAP_LASH_10", name: `Strap, Cable Lashing Support, 10", Stainless`, unit: "each" },
-    { id: "SPACER_STACK_1_2", name: `1/2" Stackable Cable Spacer`, unit: "each" },
+    // Guy Hardware
+    { id: "HOOK_B_GUY_5_8", name: `Hook, B Guy, 5/8" rams head`, unit: "each", category: "Guy Hardware" },
+    { id: "ANCHOR_ROD_3_4x66", name: `Anchor rod and anchor, 0.75" x 66"`, unit: "each", category: "Guy Hardware" },
+    { id: "GUY_INSULATOR", name: `Guy Insulator, 3 1/2" x 2 1/2"`, unit: "each", category: "Guy Hardware" },
+    { id: "GUY_GUARD_96", name: `Guy Guard, 96", Yellow`, unit: "each", category: "Guy Hardware" },
+    { id: "GRIP_DEADEND_1_4", name: `Grip, Deadend Guy, 1/4" Strand`, unit: "each", category: "Guy Hardware" },
 
-    // Guy hardware
-    { id: "HOOK_B_GUY_5_8", name: `Hook, B Guy, 5/8" rams head`, unit: "each" },
-    { id: "ANCHOR_ROD_3_4x66", name: `Anchor rod and anchor, 0.75" x 66"`, unit: "each" },
-    { id: "GUY_INSULATOR", name: `Guy Insulator, 3 1/2" x 2 1/2"`, unit: "each" },
-    { id: "GUY_GUARD_96", name: `Guy Guard, 96", Yellow`, unit: "each" },
-    { id: "GRIP_DEADEND_1_4", name: `Grip, Deadend Guy, 1/4" Strand`, unit: "each" },
+    // Riser / Conduit
+    { id: "STANDOFF_12_STEEL", name: `Standoff, 12" Steel, Diamond Pole Mount Bracket`, unit: "each", category: "Riser / Conduit" },
+    { id: "STANDOFF_V_6", name: `6" V-Style Standoff`, unit: "each", category: "Riser / Conduit" },
+    { id: "RIGID_COND_2x10", name: `2 in. x 10 ft. Rigid Metal Conduit`, unit: "each", category: "Riser / Conduit" },
+    { id: "PVC_COND_2x10", name: `2 in x 10 ft Pvc conduit`, unit: "each", category: "Riser / Conduit" },
+    { id: "STRUT_CLAMP_2IN", name: `2 in Strut Pipe Clamp`, unit: "each", category: "Riser / Conduit" },
+    { id: "RIGID_COUPLER_2IN", name: `Rigid Coupler 2"`, unit: "each", category: "Riser / Conduit" },
+    { id: "PVC_COUPLER_2IN", name: `PVC Coupler 2"`, unit: "each", category: "Riser / Conduit" },
 
-    // Standoffs / risers / conduit
-    { id: "STANDOFF_12_STEEL", name: `Standoff, 12" Steel, Diamond Pole Mount Bracket`, unit: "each" },
-    { id: "STANDOFF_V_6", name: `6" V-Style Standoff`, unit: "each" },
-    { id: "RIGID_COND_2x10", name: `2 in. x 10 ft. Rigid Metal Conduit`, unit: "each" },
-    { id: "PVC_COND_2x10", name: `2 in x 10 ft Pvc conduit`, unit: "each" },
-    { id: "STRUT_CLAMP_2IN", name: `2 in Strut Pipe Clamp`, unit: "each" },
+    // Fiber Cable
+    { id: "FIBER_SM_288", name: `Fiber Cable, Singlemode, 288 ct`, unit: "ft", category: "Fiber Cable" },
+    { id: "FIBER_SM_144", name: `Fiber Cable, Singlemode, 144 ct`, unit: "ft", category: "Fiber Cable" },
+    { id: "FIBER_SM_72",  name: `Fiber Cable, Singlemode, 072 ct`, unit: "ft", category: "Fiber Cable" },
+    { id: "FIBER_SM_12",  name: `Fiber Cable, Singlemode, 012 ct`, unit: "ft", category: "Fiber Cable" },
 
-    // Strand splice / snowshoes
-    { id: "STRAND_SPLICE_1_4", name: `Strand Splice 1/4" preformed splice`, unit: "each" },
-    { id: "SNOWSHOE_16", name: `Fiber Storage Unit, 16" Snowshoes`, unit: "each" },
-    { id: "RIGID_COUPLER_2IN", name: `Rigid Coupler 2"`, unit: "each" },
-    { id: "PVC_COUPLER_2IN", name: `PVC Coupler 2"`, unit: "each" },
+    // Splice / Closure
+    { id: "A4_CASE", name: `A4 - Case - FOSC450-A4-2-24-1-A1V`, unit: "each", category: "Splice / Closure" },
+    { id: "A6_CASE", name: `A6 - Case`, unit: "each", category: "Splice / Closure" },
+    { id: "A8_CASE", name: `A8 - Case`, unit: "each", category: "Splice / Closure" },
+    { id: "A_TRAY",  name: `A - Tray - FOSC-ACC-A-TRAY-24`, unit: "each", category: "Splice / Closure" },
+    { id: "B6_CASE", name: `B6 - Case`, unit: "each", category: "Splice / Closure" },
+    { id: "B8_CASE", name: `B8 - Case`, unit: "each", category: "Splice / Closure" },
+    { id: "B_TRAY",  name: `B - Tray`, unit: "each", category: "Splice / Closure" },
+    { id: "C4_CASE", name: `C4 - Case`, unit: "each", category: "Splice / Closure" },
+    { id: "C6_CASE", name: `C6 - Case - FOSC450`, unit: "each", category: "Splice / Closure" },
+    { id: "C8_CASE", name: `C8 - Case`, unit: "each", category: "Splice / Closure" },
+    { id: "C12_CASE", name: `C12 - Case`, unit: "each", category: "Splice / Closure" },
+    { id: "C_TRAY",  name: `C - Tray - CC-C-TRAY-FOSC-A24`, unit: "each", category: "Splice / Closure" },
+    { id: "D6_CASE", name: `D6 - Case - FOSC450-D6-6-NT-0-D6V`, unit: "each", category: "Splice / Closure" },
+    { id: "D_TRAY",  name: `D - Tray - FOSC-ACC-D-TRAY-72-KIT`, unit: "each", category: "Splice / Closure" },
+    { id: "DROP_GEL_SEAL", name: `Drop Gel Seal Kit (Drop adapter`, unit: "each", category: "Splice / Closure" },
+    { id: "PLC_1x2", name: `1X2 Bare PLC Splitter`, unit: "each", category: "Splice / Closure" },
+    { id: "PLC_1x4", name: `1X4 Bare PLC Splitter`, unit: "each", category: "Splice / Closure" },
+    { id: "PLC_1x8", name: `1X8 Bare PLC Splitter`, unit: "each", category: "Splice / Closure" },
 
-    // Fiber cables
-    { id: "FIBER_SM_288", name: `Fiber Cable, Singlemode, 288 ct`, unit: "ft" },
-    { id: "FIBER_SM_144", name: `Fiber Cable, Singlemode, 144 ct`, unit: "ft" },
-    { id: "FIBER_SM_72",  name: `Fiber Cable, Singlemode, 072 ct`, unit: "ft" },
-    { id: "FIBER_SM_12",  name: `Fiber Cable, Singlemode, 012 ct`, unit: "ft" },
+    // Handholes / Underground
+    { id: "VAULT_LARGE", name: `Vault - Large  - 17 x 30 x 18`, unit: "each", category: "Handholes / Underground" },
+    { id: "VAULT_SMALL", name: `Vault - Small - 13 x 24 x 12`, unit: "each", category: "Handholes / Underground" },
+    { id: "HANDHOLE_POLY", name: `Handhole Polymer - 13" x 24" x 12"`, unit: "each", category: "Handholes / Underground" },
+    { id: "HANDHOLE_PLASTIC", name: `Handhole - Plastic - 14"x19"`, unit: "each", category: "Handholes / Underground" },
+    { id: "CONDUIT_SDR11_1_1_4", name: `SDR11 1-1/4" HDPE Conduit`, unit: "ft", category: "Handholes / Underground" },
+    { id: "CONDUIT_SDR11_2", name: `SDR11 2" HDPE Conduit`, unit: "ft", category: "Handholes / Underground" },
+    { id: "TRACER_WIRE", name: `Tracer Wire`, unit: "ft", category: "Handholes / Underground" },
+    { id: "MULE_TAPE", name: `Mule Tape`, unit: "ft", category: "Handholes / Underground" },
+    { id: "COND_COUPLER_1_1_4", name: `Conduit Coupler 1 1/4"`, unit: "each", category: "Handholes / Underground" },
+    { id: "COND_COUPLER_2", name: `Conduit Coupler 2"`, unit: "each", category: "Handholes / Underground" },
+    { id: "COND_COUPLER_3_4", name: `Conduit Coupler 3/4"`, unit: "each", category: "Handholes / Underground" },
 
-    // FOSC / closure stuff
-    { id: "A4_CASE", name: `A4 - Case - FOSC450-A4-2-24-1-A1V`, unit: "each" },
-    { id: "A6_CASE", name: `A6 - Case`, unit: "each" },
-    { id: "A8_CASE", name: `A8 - Case`, unit: "each" },
-    { id: "A_TRAY",  name: `A - Tray - FOSC-ACC-A-TRAY-24`, unit: "each" },
-    { id: "B6_CASE", name: `B6 - Case`, unit: "each" },
-    { id: "B8_CASE", name: `B8 - Case`, unit: "each" },
-    { id: "B_TRAY",  name: `B - Tray`, unit: "each" },
-    { id: "C4_CASE", name: `C4 - Case`, unit: "each" },
-    { id: "C6_CASE", name: `C6 - Case - FOSC450`, unit: "each" },
-    { id: "C8_CASE", name: `C8 - Case`, unit: "each" },
-    { id: "C12_CASE", name: `C12 - Case`, unit: "each" },
-    { id: "C_TRAY",  name: `C - Tray - CC-C-TRAY-FOSC-A24`, unit: "each" },
-    { id: "D6_CASE", name: `D6 - Case - FOSC450-D6-6-NT-0-D6V`, unit: "each" },
-    { id: "D_TRAY",  name: `D - Tray - FOSC-ACC-D-TRAY-72-KIT`, unit: "each" },
-    { id: "DROP_GEL_SEAL", name: `Drop Gel Seal Kit (Drop adapter`, unit: "each" },
-    { id: "PLC_1x2", name: `1X2 Bare PLC Splitter`, unit: "each" },
-    { id: "PLC_1x4", name: `1X4 Bare PLC Splitter`, unit: "each" },
-    { id: "PLC_1x8", name: `1X8 Bare PLC Splitter`, unit: "each" },
-
-    // Vaults / underground
-    { id: "VAULT_LARGE", name: `Vault - Large  - 17 x 30 x 18`, unit: "each" },
-    { id: "HANDHOLE_POLY", name: `Handhole Polymer - 13" x 24" x 12"`, unit: "each" },
-    { id: "HANDHOLE_PLASTIC", name: `Handhole - Plastic - 14"x19"`, unit: "each" },
-    { id: "CONDUIT_SDR11_1_1_4", name: `SDR11 1-1/4" HDPE Conduit`, unit: "ft" },
-    { id: "CONDUIT_SDR11_2", name: `SDR11 2" HDPE Conduit`, unit: "ft" },
-    { id: "TRACER_WIRE", name: `Tracer Wire`, unit: "ft" },
-    { id: "MULE_TAPE", name: `Mule Tape`, unit: "ft" },
-    { id: "COND_COUPLER_1_1_4", name: `Conduit Coupler 1 1/4"`, unit: "each" },
-    { id: "COND_COUPLER_2", name: `Conduit Coupler 2"`, unit: "each" },
-    { id: "COND_COUPLER_3_4", name: `Conduit Coupler 3/4"`, unit: "each" },
-
-    // MST / HST drops
-    { id: "MST_6P_100",  name: `MST - 6P 100ft`, unit: "each" },
-    { id: "MST_6P_300",  name: `MST - 6P 300ft`, unit: "each" },
-    { id: "MST_6P_500",  name: `MST - 6P 500ft`, unit: "each" },
-    { id: "MST_6P_700",  name: `MST - 6P 700ft`, unit: "each" },
-    { id: "MST_6P_1000", name: `MST - 6P 1000ft`, unit: "each" },
-    { id: "MST_2P_50",   name: `MST - 2P 50ft`, unit: "each" },
-    { id: "MST_2P_100",  name: `MST - 2P 100ft`, unit: "each" },
-    { id: "MST_2P_300",  name: `MST - 2P 300ft`, unit: "each" },
-    { id: "MST_2P_400",  name: `MST - 2P 400ft`, unit: "each" },
-    { id: "MST_2P_500",  name: `MST - 2P 500ft`, unit: "each" },
-    { id: "MST_2P_700",  name: `MST - 2P 700ft`, unit: "each" },
-    { id: "MST_2P_800",  name: `MST - 2P 800ft`, unit: "each" },
-    { id: "MST_2P_1000", name: `MST - 2P 1000ft`, unit: "each" },
-    { id: "HST_6P_100",  name: `HST - 6 Port 100ft`, unit: "each" },
-    { id: "HST_6P_700",  name: `HST - 6 Port 700ft`, unit: "each" },
-    { id: "HST_2P_50",   name: `HST - 2 Port 50ft`, unit: "each" },
-    { id: "HST_2P_100",  name: `HST - 2 Port 100ft`, unit: "each" },
-    { id: "HST_2P_300",  name: `HST - 2 Port 300ft`, unit: "each" },
+    // MST / HST Drops
+    { id: "HST_6P_100",  name: `HST - 6 Port 100ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "HST_6P_700",  name: `HST - 6 Port 700ft`, unit: "each", category: "MST / HST Drops" },
+   
+    { id: "MST_6P_100",  name: `MST - 6P 100ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_6P_300",  name: `MST - 6P 300ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_6P_500",  name: `MST - 6P 500ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_6P_700",  name: `MST - 6P 700ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_6P_1000", name: `MST - 6P 1000ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "HST_2P_50",   name: `HST - 2 Port 50ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "HST_2P_100",  name: `HST - 2 Port 100ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "HST_2P_300",  name: `HST - 2 Port 300ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_2P_50",   name: `MST - 2P 50ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_2P_100",  name: `MST - 2P 100ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_2P_300",  name: `MST - 2P 300ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_2P_400",  name: `MST - 2P 400ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_2P_500",  name: `MST - 2P 500ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_2P_700",  name: `MST - 2P 700ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_2P_800",  name: `MST - 2P 800ft`, unit: "each", category: "MST / HST Drops" },
+    { id: "MST_2P_1000", name: `MST - 2P 1000ft`, unit: "each", category: "MST / HST Drops" },
+    
   ];
 
   /****************************************************
@@ -425,7 +434,7 @@ Debug output will appear here…
       { partId: "GRIP_DEADEND_1_4", qty: 1 },
     ],
     downGuyAnchorPole: [
-      { partId: "STRAND_EHS_1_4",   qty: 20 },
+      { partId: "STRAND_EHS_1_4", qty: 20 },
       { partId: "GRIP_DEADEND_1_4", qty: 4 },
       { partId: "ANCHOR_ROD_3_4x66", qty: 1 },
       { partId: "GUY_INSULATOR", qty: 1 },
@@ -439,9 +448,9 @@ Debug output will appear here…
       { partId: "CLAMP_B_SUS_5_8", qty: 1 },
     ],
     lashingIntermediatePole: [
-      { partId: "CLAMP_D_LASH", qty: 1 },
+      { partId: "CLAMP_D_LASH", qty: 2 },
       { partId: "SPACER_LASH_1_2", qty: 2 },
-      { partId: "STRAP_LASH_16", qty: 1 },
+      { partId: "STRAP_LASH_16", qty: 2 },
     ],
     poleRiser: [
       { partId: "RIGID_COND_2x10", qty: 2 },
@@ -459,278 +468,7 @@ Debug output will appear here…
    ****************************************************/
   const partsUsed = {};
   const assembliesUsed = {};
-// ---- Local Save/Load (Top Level) ----
-const STORAGE_KEY = "dailyPassdown.savedDay";
-const STORAGE_META_KEY = "dailyPassdown.savedAt";
-
-function debugLog(...args) {
-  const el = document.getElementById("debugPanel");
-  const msg = args.map(a => (a instanceof Error ? `ERROR: ${a.message}` :
-    typeof a === "object" ? JSON.stringify(a, null, 2) : String(a)
-  )).join(" ");
-
-  console.log("[DEBUG]", ...args);
-  if (el) { 
-    el.textContent += `\n[${new Date().toISOString()}] ${msg}`;
-    el.scrollTop = el.scrollHeight;
-  }
-}
-// ---- Multi-segment per-day storage ----
-function getDateStr() {
-  return document.getElementById("workDate").value || "no-date";
-}
-
-function dayLogsKey(dateStr) {
-  return `dailyPassdown.logs.${dateStr}`;
-}
-
-function loadSegmentsForDate(dateStr) {
-  const key = dayLogsKey(dateStr);
-  return JSON.parse(localStorage.getItem(key) || "[]");
-}
-
-function saveSegmentsForDate(dateStr, segments) {
-  const key = dayLogsKey(dateStr);
-  localStorage.setItem(key, JSON.stringify(segments));
-}
-
-function snapshotCurrentState() {
-  return {
-    savedAt: new Date().toISOString(),
-    workDetails: getWorkDetails(),
-    partsUsed: Object.values(partsUsed),
-    assembliesUsed: Object.entries(assembliesUsed).map(([type, qty]) => ({ type, qty })),
-  };
-}
-  const loadAllSegmentsBtn = document.getElementById("loadAllSegmentsBtn");
-
-if (loadAllSegmentsBtn) {
-  loadAllSegmentsBtn.addEventListener("click", () => {
-    const dateStr = getDateStr();
-    const segments = loadSegmentsForDate(dateStr);
-
-    if (!segments || segments.length === 0) {
-      alert(`No saved segments found for ${dateStr}.`);
-      return;
-    }
-
-    if (!confirm(
-      `Load ALL saved segments as a combined total?\n\n` +
-      `This will REPLACE the current on-screen tally.`
-    )) return;
-
-    const totals = combineSegmentsToTotals(segments);
-
-    clearAllParts();
-
-    totals.parts.forEach(p => {
-      partsUsed[p.id] = { id: p.id, name: p.name, unit: p.unit, qty: p.qty };
-    });
-
-    totals.assemblies.forEach(a => {
-      assembliesUsed[a.type] = a.qty;
-    });
-
-    renderPartsTable();
-    alert(`Loaded combined totals for ${dateStr} (${segments.length} segment(s)).`);
-  });
-}
-const submitDayTotalBtn = document.getElementById("submitDayTotalBtn");
-
-if (submitDayTotalBtn) {
-  submitDayTotalBtn.addEventListener("click", () => {
-    const dateStr = getDateStr();
-    const savedSegments = loadSegmentsForDate(dateStr);
-
-    const hasCurrent =
-      Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
-
-    if (savedSegments.length === 0 && !hasCurrent) {
-      alert("Nothing to submit yet (no saved segments and current list is empty).");
-      return;
-    }
-
-    // Build segments list including current unsaved
-    const allSegments = savedSegments.slice();
-    if (hasCurrent) allSegments.push(snapshotCurrentState());
-
-    // Build totals
-    const totals = combineSegmentsToTotals(allSegments);
-    const wd = getWorkDetails();
-
-    // Pack into payload matching your sheet columns
-    const payload = {
-      date: dateStr,
-      location: wd.location || "",
-      region: "",                 // you can add a region input later if you want
-      techName: wd.techName || "",
-      notes: (wd.notes || "") + `\n[DayTotal] Segments: ${allSegments.length}`,
-      hoursWorked: wd.hoursWorked || "",
-      assemblies: totals.assemblies,  // array
-      parts: totals.parts,            // array
-      meta: {
-        type: "dayTotal",
-        segmentCount: allSegments.length,
-        generatedAt: new Date().toISOString(),
-      }
-    };
-
-    const endpoint = "YOUR_WEB_APP_URL_HERE";
-
-    fetch(endpoint, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-      .then(() => alert("Day Total submitted. Check the Google Sheet to confirm."))
-      .catch(err => {
-        console.error(err);
-        alert("Error submitting Day Total: " + (err?.message || err));
-      });
-  });
-}
-
-
-function saveCurrentAsSegment() {
-  const dateStr = getDateStr();
-  const segments = loadSegmentsForDate(dateStr);
-  const seg = snapshotCurrentState();
-  segments.push(seg);
-  saveSegmentsForDate(dateStr, segments);
-  return { dateStr, seg, count: segments.length };
-}
-
-function combineSegmentsToTotals(segments) {
-  const partMap = {};     // id -> {id,name,unit,qty}
-  const assemblyMap = {}; // type -> qty
-
-  for (const seg of segments) {
-    (seg.partsUsed || []).forEach(p => {
-      if (!partMap[p.id]) {
-        partMap[p.id] = { id: p.id, name: p.name, unit: p.unit, qty: 0 };
-      }
-      partMap[p.id].qty += Number(p.qty) || 0;
-    });
-
-    (seg.assembliesUsed || []).forEach(a => {
-      assemblyMap[a.type] = (assemblyMap[a.type] || 0) + (Number(a.qty) || 0);
-    });
-  }
-
-  return {
-    parts: Object.values(partMap).sort((a, b) => a.id.localeCompare(b.id)),
-    assemblies: Object.entries(assemblyMap).map(([type, qty]) => ({ type, qty })),
-  };
-}
-
-function buildDayTotalCsvIncludingCurrent() {
-  const dateStr = getDateStr();
-  const segments = loadSegmentsForDate(dateStr);
-
-  // Include current unsaved tally automatically (your requirement)
-  const hasCurrent =
-    Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
-
-  if (hasCurrent) segments.push(snapshotCurrentState());
-
-  const totals = combineSegmentsToTotals(segments);
-  const wd = getWorkDetails();
-
-  const lines = [];
-  lines.push(["Date", "Technicians", "Hours Worked", "Location", "Segment Count (incl current)"].map(escapeCsv).join(","));
-  lines.push([dateStr, wd.techName, wd.hoursWorked, wd.location, String(segments.length)].map(escapeCsv).join(","));
-  lines.push("");
-
-  lines.push(["Part ID", "Description", "Qty", "Unit"].map(escapeCsv).join(","));
-  totals.parts.forEach(p => {
-    lines.push([p.id, p.name, p.qty, p.unit].map(escapeCsv).join(","));
-  });
-
-  lines.push("");
-  lines.push(["Assemblies", "Qty"].map(escapeCsv).join(","));
-  totals.assemblies.forEach(a => {
-    lines.push([a.type, a.qty].map(escapeCsv).join(","));
-  });
-
-  return lines.join("\n");
-}
-
-function startNewListOnly() {
-  // Clears current in-memory tally only; saved segments remain
-  clearAllParts();
-  // Optional: keep Work Details but clear Notes
-  document.getElementById("generalNotes").value = "";
-}
-
-
-function storageDiagnostics() {
-  debugLog("=== Storage Diagnostics ===");
-  debugLog("href:", window.location.href);
-  debugLog("protocol:", window.location.protocol);
-  debugLog("origin:", window.location.origin || "(none)");
-  try {
-    localStorage.setItem("dailyPassdown.test", "ok");
-    const v = localStorage.getItem("dailyPassdown.test");
-    localStorage.removeItem("dailyPassdown.test");
-    debugLog("localStorage write/read:", v === "ok" ? "OK" : `FAILED (got ${v})`);
-  } catch (e) {
-    debugLog("localStorage exception:", e);
-  }
-  debugLog("savedDay exists:", !!localStorage.getItem(STORAGE_KEY));
-  debugLog("savedAt:", localStorage.getItem(STORAGE_META_KEY) || "(none)");
-}
-
-function getWorkDetails() {
-  return {
-    date: document.getElementById("workDate").value,
-    techName: document.getElementById("techName").value.trim(),
-    hoursWorked: document.getElementById("hoursWorked").value,
-    location: document.getElementById("location").value.trim(),
-    notes: document.getElementById("generalNotes").value.trim(),
-  };
-}
-
-function setWorkDetails(details) {
-  document.getElementById("workDate").value = details.date || "";
-  document.getElementById("techName").value = details.techName || "";
-  document.getElementById("hoursWorked").value = details.hoursWorked || "";
-  document.getElementById("location").value = details.location || "";
-  document.getElementById("generalNotes").value = details.notes || "";
-}
-
-function saveDayToLocalStorage() {
-  const payload = {
-    workDetails: getWorkDetails(),
-    partsUsed: Object.values(partsUsed),
-    assembliesUsed: Object.entries(assembliesUsed).map(([type, qty]) => ({ type, qty })),
-  };
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  localStorage.setItem(STORAGE_META_KEY, new Date().toISOString());
-}
-
-function loadDayFromLocalStorage() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-
-  const parsed = JSON.parse(raw);
-
-  clearAllParts();
-
-  (parsed.partsUsed || []).forEach(p => {
-    partsUsed[p.id] = { id: p.id, name: p.name, unit: p.unit, qty: p.qty };
-  });
-
-  (parsed.assembliesUsed || []).forEach(a => {
-    assembliesUsed[a.type] = a.qty;
-  });
-
-  setWorkDetails(parsed.workDetails || {});
-  renderPartsTable();
-
-  return parsed;
-}
+  const SEGMENTS_STORAGE_KEY = "dailyPassdownSegments";
 
   function getPartById(id) {
     return partsCatalog.find(p => p.id === id);
@@ -742,6 +480,7 @@ function loadDayFromLocalStorage() {
       alert("Unknown part: " + partId);
       return;
     }
+
     const quantity = Number(qty) || 0;
     if (quantity <= 0) return;
 
@@ -753,11 +492,10 @@ function loadDayFromLocalStorage() {
         qty: 0,
       };
     }
+
     partsUsed[partId].qty += quantity;
     renderPartsTable();
-    }
-
-  
+  }
 
   function removePart(partId) {
     delete partsUsed[partId];
@@ -798,15 +536,41 @@ function loadDayFromLocalStorage() {
     container.innerHTML = html;
   }
 
-  function initPartDropdown() {
+  function initPartCategories() {
+    const categorySelect = document.getElementById("partCategory");
+    const categories = [...new Set(partsCatalog.map(p => p.category || "Other"))].sort();
+
+    categorySelect.innerHTML = '<option value="All">All</option>';
+
+    categories.forEach(category => {
+      const opt = document.createElement("option");
+      opt.value = category;
+      opt.textContent = category;
+      categorySelect.appendChild(opt);
+    });
+  }
+
+  function initPartDropdown(categoryFilter = "All") {
     const select = document.getElementById("partSelect");
     select.innerHTML = "";
-    partsCatalog.forEach(part => {
-      const opt = document.createElement("option");
-      opt.value = part.id;
-      opt.textContent = `${part.name} (${part.id})`;
-      select.appendChild(opt);
-    });
+
+    const defaultOpt = document.createElement("option");
+    defaultOpt.value = "";
+    defaultOpt.textContent = "Select part";
+    select.appendChild(defaultOpt);
+
+    const filteredParts = categoryFilter === "All"
+      ? partsCatalog
+      : partsCatalog.filter(part => (part.category || "Other") === categoryFilter);
+
+    filteredParts
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(part => {
+        const opt = document.createElement("option");
+        opt.value = part.id;
+        opt.textContent = `${part.name} (${part.id})`;
+        select.appendChild(opt);
+      });
   }
 
   function initDate() {
@@ -818,77 +582,155 @@ function loadDayFromLocalStorage() {
     dateInput.value = `${yyyy}-${mm}-${dd}`;
   }
 
+  function getSavedSegments() {
+    try {
+      return JSON.parse(localStorage.getItem(SEGMENTS_STORAGE_KEY)) || {};
+    } catch (err) {
+      console.error("Error reading saved segments:", err);
+      return {};
+    }
+  }
+
+  function saveSegmentsToStorage(segments) {
+    localStorage.setItem(SEGMENTS_STORAGE_KEY, JSON.stringify(segments));
+  }
+
+  function populateSavedSegmentsDropdown() {
+    const select = document.getElementById("savedSegmentSelect");
+    const segments = getSavedSegments();
+
+    select.innerHTML = '<option value="">Select saved segment</option>';
+
+    Object.keys(segments)
+      .sort((a, b) => a.localeCompare(b))
+      .forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+  }
+
+  function saveCurrentSegment() {
+    const segmentName = document.getElementById("segmentName").value.trim();
+
+    if (!segmentName) {
+      alert("Enter a segment name first.");
+      return;
+    }
+
+    const segments = getSavedSegments();
+
+    if (segments[segmentName] && !confirm(`Overwrite saved segment "${segmentName}"?`)) {
+      return;
+    }
+
+    segments[segmentName] = {
+      region: document.getElementById("region").value,
+      notes: document.getElementById("generalNotes").value.trim(),
+      assembliesUsed: { ...assembliesUsed },
+      partsUsed: JSON.parse(JSON.stringify(partsUsed)),
+    };
+
+    saveSegmentsToStorage(segments);
+    populateSavedSegmentsDropdown();
+    document.getElementById("savedSegmentSelect").value = segmentName;
+
+    alert(`Segment "${segmentName}" saved.`);
+  }
+
+  function loadSavedSegment() {
+    const selectedName = document.getElementById("savedSegmentSelect").value;
+
+    if (!selectedName) {
+      alert("Select a saved segment first.");
+      return;
+    }
+
+    const segments = getSavedSegments();
+    const segment = segments[selectedName];
+
+    if (!segment) {
+      alert("Saved segment not found.");
+      return;
+    }
+
+    clearAllParts();
+
+    document.getElementById("region").value = segment.region || "";
+    document.getElementById("generalNotes").value = segment.notes || "";
+    document.getElementById("segmentName").value = selectedName;
+
+    Object.keys(assembliesUsed).forEach(k => delete assembliesUsed[k]);
+    Object.assign(assembliesUsed, segment.assembliesUsed || {});
+
+    Object.keys(partsUsed).forEach(k => delete partsUsed[k]);
+    Object.assign(partsUsed, segment.partsUsed || {});
+
+    renderPartsTable();
+
+    alert(`Segment "${selectedName}" loaded.`);
+  }
+
+  function deleteSavedSegment() {
+    const selectedName = document.getElementById("savedSegmentSelect").value;
+
+    if (!selectedName) {
+      alert("Select a saved segment first.");
+      return;
+    }
+
+    if (!confirm(`Delete saved segment "${selectedName}"?`)) {
+      return;
+    }
+
+    const segments = getSavedSegments();
+    delete segments[selectedName];
+    saveSegmentsToStorage(segments);
+    populateSavedSegmentsDropdown();
+
+    document.getElementById("savedSegmentSelect").value = "";
+    if (document.getElementById("segmentName").value.trim() === selectedName) {
+      document.getElementById("segmentName").value = "";
+    }
+
+    alert(`Segment "${selectedName}" deleted.`);
+  }
+
   /****************************************************
    * 4. Wire up events
    ****************************************************/
-  function escapeCsv(value) {
-  const s = String(value ?? "");
-  // Wrap in quotes if needed and escape quotes
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-function buildCsvFromCurrentTally() {
-  const date = document.getElementById("workDate").value;
-  const location = document.getElementById("location").value.trim();
-  const techName = document.getElementById("techName").value.trim();
-  const hoursWorked = document.getElementById("hoursWorked").value.trim();
-  const notes = document.getElementById("generalNotes").value.trim();
-  const timestamp = new Date().toISOString();
-
-  const parts = Object.values(partsUsed);
-
-  // Header section (metadata)
-  const lines = [];
-  lines.push(["Date", "Timestamp", "Technicians", "Hours Worked", "Location", "Notes"].map(escapeCsv).join(","));
-  lines.push([date, timestamp, techName, hoursWorked, location, notes].map(escapeCsv).join(","));
-  lines.push(""); // blank line
-
-  // Line items section
-  lines.push(["Part ID", "Description", "Qty", "Unit"].map(escapeCsv).join(","));
-  parts
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .forEach(p => {
-      lines.push([p.id, p.name, p.qty, p.unit].map(escapeCsv).join(","));
-    });
-
-  return lines.join("\n");
-}
-
-function downloadCsv(filename, csvText) {
-  const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  URL.revokeObjectURL(url);
-}
-
-  
   document.addEventListener("DOMContentLoaded", () => {
+    initPartCategories();
     initPartDropdown();
     initDate();
     renderPartsTable();
+    populateSavedSegmentsDropdown();
 
     const addAssemblyBtn = document.getElementById("addAssemblyBtn");
     const clearPartsBtn = document.getElementById("clearPartsBtn");
     const addPartBtn = document.getElementById("addPartBtn");
-    const exportCsvBtn = document.getElementById("exportCsvBtn");
-    const saveSegmentBtn = document.getElementById("saveSegmentBtn");
-    const startNewListBtn = document.getElementById("startNewListBtn");
-    const exportDayTotalBtn = document.getElementById("exportDayTotalBtn");
-    const loadLatestSegmentBtn = document.getElementById("loadLatestSegmentBtn");
-    const submitDayTotalBtn = document.getElementById("submitDayTotalBtn");
-
-
-    const loadDayBtn = document.getElementById("loadDayBtn");
     const form = document.getElementById("partsForm");
     const jsonPreview = document.getElementById("jsonPreview");
+    const partCategory = document.getElementById("partCategory");
+    const regionSelect = document.getElementById("region");
+    const saveSegmentBtn = document.getElementById("saveSegmentBtn");
+    const loadSegmentBtn = document.getElementById("loadSegmentBtn");
+    const deleteSegmentBtn = document.getElementById("deleteSegmentBtn");
+
+    partCategory.addEventListener("change", () => {
+      initPartDropdown(partCategory.value);
+    });
+
+    regionSelect.addEventListener("change", function() {
+      if (this.value === "Other") {
+        document.getElementById("generalNotes").focus();
+      }
+    });
+
+    saveSegmentBtn.addEventListener("click", saveCurrentSegment);
+    loadSegmentBtn.addEventListener("click", loadSavedSegment);
+    deleteSegmentBtn.addEventListener("click", deleteSavedSegment);
 
     addAssemblyBtn.addEventListener("click", () => {
       const assemblyId = document.getElementById("assemblySelect").value;
@@ -898,6 +740,7 @@ function downloadCsv(filename, csvText) {
         alert("Select an assembly first.");
         return;
       }
+
       if (qty <= 0) {
         alert("Enter a quantity of at least 1.");
         return;
@@ -914,214 +757,36 @@ function downloadCsv(filename, csvText) {
     });
 
     clearPartsBtn.addEventListener("click", () => {
-  if (confirm("Clear all parts from this form?")) {
-    clearAllParts();
-  }
-});
-
-if (loadLatestSegmentBtn) {
-  loadLatestSegmentBtn.addEventListener("click", () => {
-    const dateStr = getDateStr();
-    const segments = loadSegmentsForDate(dateStr);
-
-    if (!segments || segments.length === 0) {
-      alert(`No saved segments found for ${dateStr}.\nTip: confirm Work Date is correct.`);
-      return;
-    }
-
-    const latest = segments[segments.length - 1];
-
-    if (!confirm(
-      `Load latest saved segment?\n\n` +
-      `Date: ${dateStr}\n` +
-      `Saved at: ${new Date(latest.savedAt).toLocaleTimeString()}\n\n` +
-      `This will REPLACE the current on-screen tally.`
-    )) return;
-
-    clearAllParts();
-
-    (latest.partsUsed || []).forEach(p => {
-      partsUsed[p.id] = { id: p.id, name: p.name, unit: p.unit, qty: p.qty };
+      if (confirm("Clear all parts from this form?")) {
+        clearAllParts();
+      }
     });
 
-    (latest.assembliesUsed || []).forEach(a => {
-      assembliesUsed[a.type] = a.qty;
-    });
-
-    if (latest.workDetails) setWorkDetails(latest.workDetails);
-
-    renderPartsTable();
-    alert(`Loaded latest segment for ${dateStr}.`);
-  });
-}
-
-loadDayBtn.addEventListener("click", () => {
-  const dateStr = getDateStr();
-  const segments = loadSegmentsForDate(dateStr);
-
-  if (!segments || segments.length === 0) {
-    alert(`No saved segments for ${dateStr}.`);
-    return;
-  }
-
-  const list = segments
-    .map((s, i) => `${i + 1}) ${new Date(s.savedAt).toLocaleTimeString()}`)
-    .join("\n");
-
-  alert(`Saved segments for ${dateStr}:\n\n${list}`);
-});
-
-
-
-
-
-   addPartBtn.addEventListener("click", () => {
+    addPartBtn.addEventListener("click", () => {
       const partId = document.getElementById("partSelect").value;
       const qty = document.getElementById("partQty").value;
+
+      if (!partId) {
+        alert("Please select a part.");
+        return;
+      }
+
       addPartToUsage(partId, qty);
     });
-
-    saveSegmentBtn.addEventListener("click", () => {
-  try {
-    const result = saveCurrentAsSegment();
-    alert(`Saved segment for ${result.dateStr}.\nSegments saved today: ${result.count}`);
-  } catch (e) {
-    console.error(e);
-    alert("Save segment failed: " + (e?.message || e));
-  }
-});
-
-startNewListBtn.addEventListener("click", () => {
-  const segments = loadSegmentsForDate(getDateStr());
-  if (!confirm(`Start a new list?\nThis clears the CURRENT tally only.\nSaved segments today: ${segments.length}`)) return;
-  startNewListOnly();
-});
-
-exportDayTotalBtn.addEventListener("click", () => {
-  const dateStr = getDateStr();
-  const savedSegments = loadSegmentsForDate(dateStr);
-
-  const hasCurrent =
-    Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
-
-  if (savedSegments.length === 0 && !hasCurrent) {
-    alert("Nothing to export yet (no saved segments and current list is empty).");
-    return;
-  }
-
-  const tech = (document.getElementById("techName").value || "no-tech")
-    .trim()
-    .replace(/\s+/g, "_");
-
-  const filename = `day-total_${dateStr}_${tech}.csv`.replace(/[^\w\-\.]/g, "_");
-  const csv = buildDayTotalCsvIncludingCurrent();
-  downloadCsv(filename, csv);
-});
-
-
-exportCsvBtn.addEventListener("click", () => {
-  const partsCount = Object.keys(partsUsed).length;
-  if (partsCount === 0) {
-    alert("No parts to export yet. Add assemblies or parts first.");
-    return;
-  }
-
-  const date = document.getElementById("workDate").value || "no-date";
-  const tech = (document.getElementById("techName").value || "no-tech")
-    .trim()
-    .replace(/\s+/g, "_");
-
-  const filename = `daily-passdown_${date}_${tech}.csv`.replace(/[^\w\-\.]/g, "_");
-  const csv = buildCsvFromCurrentTally();
-  downloadCsv(filename, csv);
-  
- const isIOS =
-  /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-if (isIOS) {
-  setTimeout(() => {
-    alert(
-      "CSV exported.\n\n" +
-      "Tap the Share icon, then choose 'Save to Files' to keep a copy."
-    );
-  }, 100);
-}
-
-
-});
-
- if (submitDayTotalBtn) {
-  submitDayTotalBtn.addEventListener("click", () => {
-   const dateStr = getDateStr();
-const savedSegments = loadSegmentsForDate(dateStr);
-
-const hasCurrent =
-  Object.keys(partsUsed).length > 0 || Object.keys(assembliesUsed).length > 0;
-
-if (savedSegments.length === 0 && !hasCurrent) {
-  alert("Nothing to submit yet (no saved segments and current list is empty).");
-  return;
-}
-
-if (!confirm(
-  `Submit DAY TOTAL for ${dateStr}?\n\n` +
-  `Saved segments: ${savedSegments.length}\n` +
-  `Include current unsaved tally: ${hasCurrent ? "YES" : "NO"}`
-)) return;
-
-// Build an array of segments including current unsaved (optional)
-const allSegments = savedSegments.slice();
-if (hasCurrent) allSegments.push(snapshotCurrentState());
-
-// Combine into totals (you already have this helper)
-const totals = combineSegmentsToTotals(allSegments);
-
-// Build payload expected by your Apps Script
-const wd = getWorkDetails();
-
-const payload = {
-  date: dateStr,
-  location: wd.location || "",
-  region: wd.region || "", // (you don't have region input yet; will be blank)
-  techName: wd.techName || "",
-  notes: (wd.notes || "") + `\n[DayTotal] SegmentCount=${allSegments.length}`,
-  hoursWorked: wd.hoursWorked || "",
-  assemblies: totals.assemblies,
-  parts: totals.parts,
-  meta: {
-    type: "dayTotal",
-    segmentCount: allSegments.length
-  },
-  segments: allSegments // optional: lets Apps Script write Segments Log
-};
-
-const endpoint = "https://script.google.com/macros/s/AKfycbyEt9UFLn5TC4cDyECGdcgaYlloD0qAD3cnVcKabnyv0tbNVlCh1pEsi_80QLePCm9g/exec";
-
-fetch(endpoint, {
-  method: "POST",
-  mode: "no-cors",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload),
-})
-  .then(() => {
-    alert("Day Total submitted. Check Google Sheet to confirm.");
-  })
-  .catch(err => {
-    console.error(err);
-    alert("Day Total submit failed: " + (err?.message || err));
-  });
- 
-    });
-}
-
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
 
+      const region = document.getElementById("region").value;
+
+      if (!region) {
+        alert("Please select a region.");
+        return;
+      }
+
       const payload = {
         date: document.getElementById("workDate").value,
-        location: document.getElementById("location").value.trim(),
+        region,
         techName: document.getElementById("techName").value.trim(),
         hoursWorked: document.getElementById("hoursWorked").value.trim(),
         notes: document.getElementById("generalNotes").value.trim(),
@@ -1130,10 +795,16 @@ fetch(endpoint, {
         parts: Object.values(partsUsed),
       };
 
-      if (jsonPreview) jsonPreview.textContent = JSON.stringify(payload, null, 2);
+      jsonPreview.textContent = JSON.stringify(payload, null, 2);
 
+     const confirmSubmit = confirm(
+  `Submit daily passdown for ${region} with ${Object.values(partsUsed).length} part line(s)?`
+);
 
-      // 👇 PASTE YOUR NEW WEB APP URL HERE
+if (!confirmSubmit) {
+  return;
+}
+
       const endpoint = "https://script.google.com/macros/s/AKfycbyEt9UFLn5TC4cDyECGdcgaYlloD0qAD3cnVcKabnyv0tbNVlCh1pEsi_80QLePCm9g/exec";
 
       fetch(endpoint, {
@@ -1149,6 +820,8 @@ fetch(endpoint, {
         clearAllParts();
         form.reset();
         initDate();
+        initPartCategories();
+        initPartDropdown();
       })
       .catch(err => {
         console.error(err);
@@ -1159,22 +832,3 @@ fetch(endpoint, {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
